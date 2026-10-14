@@ -1,0 +1,12 @@
+{
+    "KPackageStructure": "KWin/Script",
+    "KPlugin": {
+        "Description": "Notification popups lined up with a floating bottom panel: its right edge, and its float gap above it",
+        "EnabledByDefault": false,
+        "Id": "kderice_notifications",
+        "License": "GPL",
+        "Name": "Notifications by the panel (kde-rice)"
+    },
+    "X-Plasma-API": "javascript",
+    "X-Plasma-MainScript": "code/main.js"
+}
