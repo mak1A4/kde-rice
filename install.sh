@@ -12,8 +12,8 @@
 # the session starts, so for those it is a new login. The login screen is
 # brought in step with the session (Papirus, if that is the icon theme, is
 # installed for everyone so that it finds it). Plasma keeps the
-# wallpaper's code until it restarts: if that changed, Plasma (the desktop
-# and the panels, not the windows) is restarted.
+# wallpaper's code and the icons it has drawn until it restarts: if either
+# changed, Plasma (the desktop and the panels, not the windows) is restarted.
 set -e
 
 repo=$(cd "$(dirname "$0")" && pwd)
@@ -29,6 +29,12 @@ wallpaper=/usr/share/plasma/wallpapers/io.github.mak1a4.kde-rice.background
 
 before=$(sums)
 wallpaper_before=$(cat "$wallpaper"/contents/ui/*.qml 2> /dev/null | md5sum)
+# Plasma keeps the icons it has drawn by their file's name, not by what is
+# in the file: when kde-rice's icons change, it is restarted too
+icons_sum() {
+    cat /usr/share/icons/kde-rice-whitesur/apps/scalable/*.svg 2> /dev/null | md5sum
+}
+icons_before=$(icons_sum)
 
 cd "$repo/packaging"
 
@@ -83,9 +89,10 @@ restart() {
 restart kde-rice-launcher kde-rice-launcher --background
 restart kde-rice-gaps kde-rice-gaps
 
-if [ "$(cat "$wallpaper"/contents/ui/*.qml 2> /dev/null | md5sum)" != "$wallpaper_before" ] && pgrep -x plasmashell > /dev/null; then
+if { [ "$(cat "$wallpaper"/contents/ui/*.qml 2> /dev/null | md5sum)" != "$wallpaper_before" ] || [ "$(icons_sum)" != "$icons_before" ]; } \
+    && pgrep -x plasmashell > /dev/null; then
     systemctl --user restart plasma-plasmashell.service
-    echo "restarted Plasma for the new wallpaper"
+    echo "restarted Plasma for the new wallpaper or icons"
 fi
 
 echo
