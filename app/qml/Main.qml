@@ -54,8 +54,6 @@ Kirigami.ApplicationWindow {
     globalDrawer: Kirigami.GlobalDrawer {
         isMenu: false
         modal: !root.wideScreen
-        collapsible: true
-        showHeaderWhenCollapsed: true
         actions: root.sections
     }
 
