@@ -14,11 +14,11 @@ be changed from outside is changed from here, and Plasma updates stay a
 | `app/` | The hub: a Kirigami application (QML + C++) | Qt, KDE Frameworks |
 | `themes/` | Themes (`data/`), what they are written into for each program (`templates/`), the wallpaper that shows a theme's background, and the code that applies them | KDE Frameworks |
 | `launcher/` | The launcher: a Spotlight-like search on Meta+Space, with KRunner's plugins underneath | KRunner, LayerShellQt |
-| `kwin/scripts/` | KWin scripts (JavaScript), e.g. notification popups lined up with a floating panel | KWin's scripting API (stable) |
 | `kwin/plugins/` | KWin plugins (C++), e.g. rounded corners on every window | KWin's internal API |
 | `kwin/decoration/breeze/` | Breeze title bars, patched to keep their corners | KDecoration3, Breeze's sources |
 
-Coming: `lookandfeel/` (global theme), `plasmoids/`, `kwin/effects/`, `sddm/`.
+Coming: `lookandfeel/` (global theme), `plasmoids/`, `kwin/scripts/`,
+`kwin/effects/`, `sddm/`.
 
 ## Themes
 
@@ -86,7 +86,7 @@ to read them again, load a plugin, or run a script. The QML types it builds on
 are in `app/src`:
 
 - `ConfigEntry`: one entry of a KConfig file, read and written from QML
-- `KWinPlugin`: a KWin plugin or script (`script: true`) switched on and off, now and for the next login
+- `KWinPlugin`: a KWin plugin switched on and off, now and for the next login
 - `KWin` (singleton): reconfigure, and the window decoration
 
 ## Build
@@ -100,8 +100,7 @@ sudo cmake --install build        # the KWin parts only work installed
 
 Or as a package: `cd packaging && makepkg -si`.
 
-Options: `-DKDERICE_APP=OFF`, `-DKDERICE_THEMES=OFF`, `-DKDERICE_LAUNCHER=OFF`,
-`-DKDERICE_KWIN_SCRIPTS=OFF`, `-DKDERICE_KWIN_PLUGINS=OFF`,
+Options: `-DKDERICE_APP=OFF`, `-DKDERICE_KWIN_PLUGINS=OFF`,
 `-DKDERICE_DECORATION=OFF`. The decoration fetches Breeze's sources for the
 installed Plasma release from download.kde.org; `-DBREEZE_URL=` points it at
 a local archive instead.
