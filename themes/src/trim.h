@@ -19,6 +19,6 @@ namespace IconTrim
 {
 // the trimmed SVG; nothing if it cannot be read, or already fills its canvas
 std::optional<QByteArray> trimmed(const QByteArray &svg);
-// Trims an SVG file in place. True if it changed.
+// Trims an SVG or PNG file in place. True if it changed.
 bool trimFile(const QString &path);
 }

@@ -55,7 +55,7 @@ QString overrideFor(const QString &name);
 // icon's SVG made to fill its canvas as kde-rice-whitesur's are (trim.h).
 // False if it cannot.
 bool setOverride(const QString &name, const QString &picture, bool trim = false);
-// Trims an icon of the user's own (an SVG). True if that changed it.
+// Trims an icon of the user's own (SVG or PNG). True if that changed it.
 bool trimOverride(const QString &name);
 void removeOverride(const QString &name);
 QStringList overrides();

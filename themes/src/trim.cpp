@@ -1,6 +1,8 @@
 #include "trim.h"
 
 #include <QFile>
+#include <QImage>
+#include <QPainter>
 #include <QRegularExpression>
 #include <QSaveFile>
 
@@ -142,8 +144,54 @@ std::optional<QByteArray> trimmed(const QByteArray &svg)
     return text.toUtf8();
 }
 
+// A PNG app icon trimmed by the same rule, its tile filling 93 % of a
+// square, at no more than 512 pixels.
+static bool trimPng(const QString &path)
+{
+    QImage image(path);
+    if (image.isNull()) {
+        return false;
+    }
+    image = image.convertToFormat(QImage::Format_ARGB32);
+    Box drawn, solid;
+    for (int y = 0; y < image.height(); ++y) {
+        const auto *row = reinterpret_cast<const QRgb *>(image.constScanLine(y));
+        for (int x = 0; x < image.width(); ++x) {
+            const int alpha = qAlpha(row[x]);
+            if (alpha > s_alpha) {
+                drawn.add(x, y);
+            }
+            if (alpha > s_solid) {
+                solid.add(x, y);
+            }
+        }
+    }
+    if (drawn.empty()) {
+        return false;
+    }
+    const bool tile = !solid.empty() && solid.side() >= drawn.side() * 0.75;
+    const Box &around = tile ? solid : drawn;
+    const double side = tile ? around.side() / s_tile : around.side() * (1 + 2 * s_margin);
+    if (side >= std::max(image.width(), image.height()) * 0.98) {
+        return false;
+    }
+    const double cx = (around.left + around.right + 1) / 2.0;
+    const double cy = (around.top + around.bottom + 1) / 2.0;
+    const int out = std::min(512, int(std::lround(side)));
+    QImage result(out, out, QImage::Format_ARGB32_Premultiplied);
+    result.fill(Qt::transparent);
+    QPainter painter(&result);
+    painter.setRenderHint(QPainter::SmoothPixmapTransform);
+    painter.drawImage(QRectF(0, 0, out, out), image, QRectF(cx - side / 2, cy - side / 2, side, side));
+    painter.end();
+    return result.save(path, "PNG");
+}
+
 bool trimFile(const QString &path)
 {
+    if (path.endsWith(QLatin1String(".png"), Qt::CaseInsensitive)) {
+        return trimPng(path);
+    }
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly)) {
         return false;

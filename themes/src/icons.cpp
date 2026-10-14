@@ -330,7 +330,7 @@ void removeOverride(const QString &name)
 bool trimOverride(const QString &name)
 {
     const QString path = overrideFor(name);
-    return path.endsWith(".svg"_L1) && IconTrim::trimFile(path);
+    return (path.endsWith(".svg"_L1) || path.endsWith(".png"_L1)) && IconTrim::trimFile(path);
 }
 
 bool setOverride(const QString &name, const QString &picture, bool trim)
@@ -354,7 +354,7 @@ bool setOverride(const QString &name, const QString &picture, bool trim)
     if (!QFile::rename(part, target)) {
         return false;
     }
-    if (trim && suffix == "svg"_L1) {
+    if (trim && (suffix == "svg"_L1 || suffix == "png"_L1)) {
         IconTrim::trimFile(target);
     }
     return true;
