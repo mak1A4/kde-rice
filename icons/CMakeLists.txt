@@ -30,9 +30,13 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E env DESKTOP_SESSION=plasma ${BASH} ${whitesur_SOURCE_DIR}/install.sh -d ${themes} -n kde-rice-whitesur -p > ${CMAKE_CURRENT_BINARY_DIR}/whitesur-install.log
     # the system makes its caches of icon themes itself, when they are installed
     COMMAND find ${themes} -name icon-theme.cache -delete
+    # kde-rice's own pictures in place of WhiteSur's (extra/: Steam's tray
+    # glyph in the colour scheme's text colour), in every variant that has
+    # its own status icons
+    COMMAND sh -c "for dir in \"$1\"/*/status/32; do [ -L \"$dir\" ] || cp -f \"$2\"/*.svg \"$dir\"/; done" sh ${themes} ${CMAKE_CURRENT_SOURCE_DIR}/extra
     # app icons a little larger: WhiteSur leaves a margin round each tile
     COMMAND $<TARGET_FILE:kde-rice-trim-icons> ${themes}/kde-rice-whitesur/apps ${themes}/kde-rice-whitesur-dark/apps
-    DEPENDS ${whitesur_SOURCE_DIR}/install.sh kde-rice-trim-icons
+    DEPENDS ${whitesur_SOURCE_DIR}/install.sh kde-rice-trim-icons ${CMAKE_CURRENT_SOURCE_DIR}/extra/steam_tray_mono.svg
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMENT "Building WhiteSur ${WHITESUR_VERSION} as kde-rice-whitesur"
     VERBATIM
