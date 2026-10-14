@@ -110,7 +110,10 @@ build/bin/kde-rice                # the hub runs from the build directory
 sudo cmake --install build        # the KWin parts only work installed
 ```
 
-Or as a package: `cd packaging && makepkg -si`.
+Or as a package, the way to install it here: **`./install.sh`**. It builds
+the pacman package from this checkout, installs it (asking for the password
+once), starts the launcher and the gaps again in their new build, and says
+when KWin's parts changed and need a new login.
 
 Options: `-DKDERICE_APP=OFF`, `-DKDERICE_THEMES=OFF`, `-DKDERICE_LAUNCHER=OFF`,
 `-DKDERICE_GAPS=OFF`, `-DKDERICE_KWIN_PLUGINS=OFF`,
@@ -118,7 +121,7 @@ Options: `-DKDERICE_APP=OFF`, `-DKDERICE_THEMES=OFF`, `-DKDERICE_LAUNCHER=OFF`,
 installed Plasma release from download.kde.org; `-DBREEZE_URL=` points it at
 a local archive instead.
 
-**After every Plasma update**, build and install again: KWin's plugin API
+**After every Plasma update**, run `./install.sh` again: KWin's plugin API
 is not stable between releases, and a plugin built for the previous KWin is
 not loaded. A plugin already loaded is replaced by its new build only at the
 next login.

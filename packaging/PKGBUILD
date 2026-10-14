@@ -1,11 +1,11 @@
-# Builds and installs kde-rice from this checkout:
+# Builds and installs kde-rice from this checkout (../install.sh runs it):
 #
 #   cd packaging && makepkg -si
 #
 # The KWin plugins and the decoration are built against the KWin installed
 # now: run it again after each Plasma update.
 pkgname=kde-rice-git
-pkgver=r7.69af67f
+pkgver=r9.9254ff0
 pkgrel=1
 pkgdesc="One place to customize KDE Plasma: a hub application and the KWin and Plasma parts it switches on"
 arch=(x86_64)
