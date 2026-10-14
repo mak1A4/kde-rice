@@ -36,6 +36,12 @@ Kirigami.ScrollablePage {
             }
         },
         Kirigami.Action {
+            text: i18n("Update Login Screen")
+            icon.name: "preferences-system-login"
+            tooltip: i18n("Give the login screen your theme's colours, icons, fonts and keyboard layout (asks for your password). Its background follows every change of theme by itself.")
+            onTriggered: Session.start("pkexec", ["/usr/lib/kde-rice/login-screen"])
+        },
+        Kirigami.Action {
             text: i18n("Themes Folder")
             icon.name: "folder-open"
             onTriggered: Qt.openUrlExternally("file://" + themes.userDir)

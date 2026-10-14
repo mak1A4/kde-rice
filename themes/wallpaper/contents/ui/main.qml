@@ -5,12 +5,14 @@ import QtMultimedia
 import Qt.labs.folderlistmodel
 import org.kde.plasma.plasmoid
 
-// The background of the kde-rice theme, as a Plasma wallpaper: the desktop
-// and the lock screen can both be set to it, and then show the same picture
-// or video.
+// The background of the kde-rice theme, as a Plasma wallpaper: the desktop,
+// the lock screen and the login screen can all be set to it, and then show
+// the same picture or video.
 //
 // It has no settings. It shows the one file in a directory kde-rice fills
-// when a theme is chosen (~/.local/share/kde-rice/background). A new file
+// when a theme is chosen: the user's (~/.local/share/kde-rice/background),
+// or for the login screen, which runs as a user of its own and cannot read
+// that, a copy in /var/lib/kde-rice/background. A new file
 // there is shown at once: it opens out from the middle of the screen, as a
 // growing disc, over the one before. (The first file, at the start, is
 // simply there.)
@@ -24,17 +26,43 @@ WallpaperItem {
         showDirs: false
     }
 
-    // Looked at whenever the folder's listing changes in any way: kde-rice
+    FolderListModel {
+        id: shared
+
+        folder: "file:///var/lib/kde-rice/background"
+        showDirs: false
+    }
+
+    // Looked at whenever a folder's listing changes in any way: kde-rice
     // swaps one file for the next at once, so the folder has one file before
     // and after, and a binding on the count alone never looks again.
     property url source: ""
 
     function look() {
-        source = own.count > 0 ? own.get(0, "fileUrl") : "";
+        source = own.count > 0 ? own.get(0, "fileUrl") : (shared.count > 0 ? shared.get(0, "fileUrl") : "");
     }
 
     Connections {
         target: own
+        function onCountChanged() {
+            root.look();
+        }
+        function onRowsInserted() {
+            root.look();
+        }
+        function onRowsRemoved() {
+            root.look();
+        }
+        function onDataChanged() {
+            root.look();
+        }
+        function onModelReset() {
+            root.look();
+        }
+    }
+
+    Connections {
+        target: shared
         function onCountChanged() {
             root.look();
         }

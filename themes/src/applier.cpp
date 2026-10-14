@@ -13,6 +13,8 @@
 #include <QProcess>
 #include <QRegularExpression>
 #include <QSaveFile>
+#include <QScopeGuard>
+#include <QUrl>
 #include <QStandardPaths>
 
 #include <cstdio>
@@ -418,22 +420,33 @@ static KConfigGroup lockGroup()
     return KSharedConfig::openConfig(u"kscreenlockerrc"_s, KConfig::NoGlobals)->group(u"Greeter"_s);
 }
 
-// Leaves `from` as the only file in `dir`, as a link named after the theme
-// and the background (`<theme>-<file>`): a new name is what the wallpaper
-// takes for a new background, so two backgrounds of one theme need two
-// names. The new link is made before the old one is taken away, so the
-// directory is never empty in between: an empty one means "no background"
-// to the wallpaper.
-static void fill(const QString &dir, const QString &from, const QString &name)
+// Leaves `from` as the only file in `dir`, named after the theme and the
+// background (`<theme>-<file>`): a new name is what the wallpaper takes for
+// a new background, so two backgrounds of one theme need two names. A link,
+// or with `copy` a copy (for the login screen, which cannot follow a link
+// into a home directory). The new file is put there before the old one is
+// taken away, so the directory is never empty in between: an empty one
+// means "no background" to the wallpaper.
+static void fill(const QString &dir, const QString &from, const QString &name, bool copy = false)
 {
     QDir().mkpath(dir);
     QString target;
     if (!from.isEmpty()) {
         target = dir + u'/' + name + u'-' + QFileInfo(from).fileName();
-        if (QFileInfo(target).symLinkTarget() != from) {
-            QFile::remove(target + ".part"_L1);
-            QFile::link(from, target + ".part"_L1);
-            std::rename(QFile::encodeName(target + ".part"_L1).constData(), QFile::encodeName(target).constData());
+        const QString part = target + ".part"_L1;
+        if (copy) {
+            const QFileInfo existing(target);
+            if (!existing.exists() || existing.size() != QFileInfo(from).size()) {
+                QFile::remove(part);
+                if (QFile::copy(from, part)) {
+                    QFile::setPermissions(part, QFile::ReadOwner | QFile::WriteOwner | QFile::ReadGroup | QFile::ReadOther);
+                    std::rename(QFile::encodeName(part).constData(), QFile::encodeName(target).constData());
+                }
+            }
+        } else if (QFileInfo(target).symLinkTarget() != from) {
+            QFile::remove(part);
+            QFile::link(from, part);
+            std::rename(QFile::encodeName(part).constData(), QFile::encodeName(target).constData());
         }
     }
     const auto entries = QDir(dir).entryInfoList(QDir::Files | QDir::System | QDir::Hidden | QDir::NoDotAndDotDot);
@@ -442,6 +455,26 @@ static void fill(const QString &dir, const QString &from, const QString &name)
             QFile::remove(entry.absoluteFilePath());
         }
     }
+}
+
+// The login screen's copy, in a directory of the user's that
+// login-screen.sh makes once, as root: the theme's background, or without
+// one the desktop's own picture (the login screen keeps kde-rice's
+// wallpaper, which only root could change).
+static void fillLoginScreen(const QString &file, const QString &name)
+{
+    const QString shared = u"/var/lib/kde-rice/background"_s;
+    if (!QFileInfo(shared).isWritable()) {
+        return;
+    }
+    if (!file.isEmpty()) {
+        fill(shared, file, name, true);
+        return;
+    }
+    QString picture = evaluateInPlasma(u"const d = desktops().find(d => d.screen >= 0) ?? desktops()[0]; "
+                                       "if (d) { d.currentConfigGroup = ['Wallpaper', 'org.kde.image', 'General']; print(d.readConfig('Image')) }"_s);
+    picture = QUrl(picture).isLocalFile() ? QUrl(picture).toLocalFile() : picture;
+    fill(shared, QFileInfo(picture).isFile() ? picture : QString(), u"desktop"_s, true);
 }
 
 static void applyBackground(Context &context, const QString &file)
@@ -453,6 +486,10 @@ static void applyBackground(Context &context, const QString &file)
     if (!context.tell()) {
         return;
     }
+    // the login screen's after the desktop's own picture is back, if any
+    const auto loginScreen = qScopeGuard([&file, &context] {
+        fillLoginScreen(file, context.values[u"name"_s]);
+    });
     if (!file.isEmpty()) {
         if (!installed) {
             context.problems += u"the wallpaper plugin %1 is not installed: the background is not shown"_s.arg(s_wallpaper);

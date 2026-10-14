@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<policyconfig>
+  <action id="io.github.mak1a4.kde-rice.login-screen">
+    <description>Bring the login screen in step with your session</description>
+    <message>Authenticate to give the login screen your theme's background, colours, icons, fonts, keyboard layout and display scaling.</message>
+    <icon_name>preferences-system-login</icon_name>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/kde-rice/login-screen</annotate>
+  </action>
+</policyconfig>

@@ -7,7 +7,9 @@
 # Afterwards the programs that run in the background (the launcher, the
 # gaps) are started again in their new build, and it says whether KWin's
 # parts changed: KWin loads its plugins and the window decoration only when
-# the session starts, so for those it is a new login. Plasma keeps the
+# the session starts, so for those it is a new login. The login screen is
+# brought in step with the session (Papirus, if that is the icon theme, is
+# installed for everyone so that it finds it). Plasma keeps the
 # wallpaper's code until it restarts: if that changed, Plasma (the desktop
 # and the panels, not the windows) is restarted.
 set -e
@@ -29,6 +31,18 @@ wallpaper_before=$(cat "$wallpaper"/contents/ui/*.qml 2> /dev/null | md5sum)
 cd "$repo/packaging"
 rm -f kde-rice-git-*.pkg.tar.zst
 makepkg --syncdeps --force --install --noconfirm
+
+# The login screen: its icon theme has to be installed for everyone, and
+# it is given the session's settings and kde-rice's wallpaper (as root).
+if getent passwd plasmalogin > /dev/null; then
+    icons=$(kreadconfig6 --file kdeglobals --group Icons --key Theme)
+    case "$icons" in
+        Papirus*)
+            [ -d "/usr/share/icons/$icons" ] || sudo pacman -S --needed --noconfirm papirus-icon-theme
+            ;;
+    esac
+    sudo /usr/lib/kde-rice/login-screen
+fi
 
 # the background programs, as the new build
 restart() {

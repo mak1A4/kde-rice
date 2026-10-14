@@ -90,6 +90,18 @@ the panel and Plasma keeps it floating (it un-floats a panel whose window a
 window overlaps). Switched on, with the gap's size, on the hub's Windows page
 (`[Gaps] Enabled`, `Size` in `kde-ricerc`); it runs at login when on.
 
+## Login screen
+
+Plasma Login Manager runs as a user of its own and reads nothing in a home
+directory. `login/login-screen.sh` (installed as
+`/usr/lib/kde-rice/login-screen`, run as root by `install.sh` and by "Update
+Login Screen" on the Appearance page) makes `/var/lib/kde-rice/background`
+the user's, sets the login screen to kde-rice's wallpaper, and copies the
+session's colours, fonts, icon theme, keyboard layout and display scaling
+there. kde-rice then copies the theme's background into that directory at
+every change of theme, without root. The icon theme has to be installed for
+everyone; `install.sh` installs Papirus if that is the one in use.
+
 ## Panel transparency
 
 Plasma's panel settings know only opaque, translucent and adaptive; how
