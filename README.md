@@ -14,6 +14,7 @@ be changed from outside is changed from here, and Plasma updates stay a
 | `app/` | The hub: a Kirigami application (QML + C++) | Qt, KDE Frameworks |
 | `themes/` | Themes (`data/`), what they are written into for each program (`templates/`), the wallpaper that shows a theme's background, and the code that applies them | KDE Frameworks |
 | `launcher/` | The launcher: a Spotlight-like search on Meta+Space, with KRunner's plugins underneath | KRunner, LayerShellQt |
+| `gaps/` | `kde-rice-gaps`: room kept free along the screen's edges, so maximized windows keep a gap and a floating panel keeps floating | LayerShellQt |
 | `kwin/plugins/` | KWin plugins (C++), e.g. rounded corners on every window | KWin's internal API |
 | `kwin/decoration/breeze/` | Breeze title bars, patched to keep their corners | KDecoration3, Breeze's sources |
 
@@ -77,6 +78,17 @@ KRunner's here: `kde-rice-launcher --take-shortcut` takes it over once.
 Enter runs, Shift+Enter a result's first action, Tab walks its actions,
 Escape clears and then closes. Also over D-Bus:
 `qdbus6 io.github.mak1a4.kde-rice-launcher /Launcher toggle`.
+
+## Gaps
+
+KWin has no gaps around maximized windows. `kde-rice-gaps` reserves an
+invisible, click-through strip along each screen edge (layer-shell surfaces
+with only an exclusive zone), and KWin fits maximized and quick-tiled windows
+into what is left; nothing moves windows around. Along a floating panel the
+strip is its float margin plus the gap, so maximized windows end a gap above
+the panel and Plasma keeps it floating (it un-floats a panel whose window a
+window overlaps). Switched on, with the gap's size, on the hub's Windows page
+(`[Gaps] Enabled`, `Size` in `kde-ricerc`); it runs at login when on.
 
 ## How the hub changes Plasma
 

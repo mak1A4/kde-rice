@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=kde-rice gaps
+Comment=Room kept free along the screen's edges for maximized windows
+Exec=kde-rice-gaps
+Icon=view-split-left-right
+NoDisplay=true
+OnlyShowIn=KDE;
+X-KDE-autostart-phase=1

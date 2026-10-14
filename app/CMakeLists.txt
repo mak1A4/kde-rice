@@ -15,6 +15,7 @@ qt_add_executable(kde-rice
     src/configentry.cpp src/configentry.h
     src/kwin.cpp src/kwin.h
     src/kwinplugin.cpp src/kwinplugin.h
+    src/session.cpp src/session.h
     src/thememodel.cpp src/thememodel.h
 )
 

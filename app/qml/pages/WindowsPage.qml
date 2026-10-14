@@ -21,6 +21,52 @@ FormCard.FormCardPage {
         kwin: true
     }
 
+    ConfigEntry {
+        id: gaps
+        file: "kde-ricerc"
+        group: "Gaps"
+        key: "Enabled"
+        defaultValue: false
+    }
+
+    ConfigEntry {
+        id: gapSize
+        file: "kde-ricerc"
+        group: "Gaps"
+        key: "Size"
+        defaultValue: 18
+    }
+
+    FormCard.FormHeader {
+        title: i18n("Gaps")
+    }
+
+    FormCard.FormCard {
+        FormCard.FormSwitchDelegate {
+            text: i18n("Gaps around maximized windows")
+            description: i18n("Maximized and tiled windows keep a gap to the screen's edges and to the panel, so a floating panel stays floating.")
+            checked: gaps.value
+            onToggled: {
+                gaps.value = checked;
+                // off, it quits by itself
+                if (checked) {
+                    Session.start("kde-rice-gaps");
+                }
+            }
+        }
+
+        FormCard.FormDelegateSeparator {}
+
+        FormCard.FormSpinBoxDelegate {
+            label: i18n("Gap (logical pixels)")
+            enabled: gaps.value
+            from: 0
+            to: 60
+            value: gapSize.value
+            onValueChanged: if (value !== gapSize.value) gapSize.value = value
+        }
+    }
+
     FormCard.FormHeader {
         title: i18n("Corners")
     }
