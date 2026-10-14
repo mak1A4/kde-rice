@@ -192,6 +192,11 @@ void reload()
     auto signal = QDBusMessage::createSignal(u"/KGlobalSettings"_s, u"org.kde.KGlobalSettings"_s, u"notifyChange"_s);
     signal << 4 << 0;
     QDBusConnection::sessionBus().send(signal);
+    // Sent when the event loop runs, which a program that ends now never
+    // gets to (kde-rice-theme): a call that waits for its answer goes after
+    // the signals, in order, so they are out once it returns.
+    QDBusConnection::sessionBus().call(
+        QDBusMessage::createMethodCall(u"org.freedesktop.DBus"_s, u"/org/freedesktop/DBus"_s, u"org.freedesktop.DBus"_s, u"GetId"_s));
 }
 
 QList<Theme> installed()
