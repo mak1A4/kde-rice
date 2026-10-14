@@ -407,7 +407,7 @@ static void applyVsCode(Context &context)
 // Teams for Linux and Outlook for Linux (Electron) hand the tray a picture of
 // their own, which no icon theme reaches. Both take a picture file for it in
 // their config.json: kde-rice's glyph for each (icons/tray), drawn in the
-// colour of WhiteSur's tray icons for the mode. Read when they start.
+// theme's text colour, as the tray's other icons are. Read when they start.
 static QString trayDir()
 {
     QString dir = QStandardPaths::locate(QStandardPaths::GenericDataLocation, u"kde-rice/tray"_s, QStandardPaths::LocateDirectory);
@@ -422,8 +422,10 @@ static QString trayDir()
 static void applyElectronTrays(Context &context)
 {
     const bool dark = context.values[u"mode"_s] == "dark"_L1;
-    // WhiteSur's tray icons: #363636 on light, #f2f2f2 on dark
-    const QByteArray colour = dark ? "#f2f2f2" : "#363636";
+    // the colour of the tray's other icons: the theme's text colour (see
+    // icons.cpp, which colours WhiteSur's status icons with it)
+    Q_UNUSED(dark)
+    const QByteArray colour = context.values[u"fg"_s].toLatin1();
     // the application, its glyph, and where the picture is named (Teams has
     // a newer name for it)
     struct App {

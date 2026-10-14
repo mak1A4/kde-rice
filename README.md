@@ -102,6 +102,14 @@ and finds any icon by name; for each, the same name from every installed
 theme, the pictures of another name, or a file of your own. An application
 whose menu entry names a picture file instead of an icon (T3 Code) is given a
 copy of its entry naming an icon of its own, which then can be changed too.
+The base's status icons (the tray's) are coloured in the kde-rice theme's
+text colour, the colour Plasma draws the clock in: copies in
+`~/.local/share/icons/kde-rice/tinted`, made again when the theme or the base
+changes (Plasma is restarted then, as it keeps the icons it has drawn).
+Teams and Outlook (the Electron ones), which hand the tray a picture of their
+own, get kde-rice's glyphs (`icons/tray`) in the same colour, through their
+config.json.
+
 From a terminal: `kde-rice-theme icons use | base <theme> | set <name> <file>
 | reset <name> | find <name>`.
 

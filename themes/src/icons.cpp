@@ -1,4 +1,5 @@
 #include "icons.h"
+#include "theme.h"
 #include "trim.h"
 
 #include <KConfigGroup>
@@ -8,6 +9,7 @@
 
 #include <QDBusConnection>
 #include <QDBusMessage>
+#include <QDateTime>
 #include <QDir>
 #include <QDirIterator>
 #include <QFile>
@@ -23,6 +25,11 @@ using namespace Qt::StringLiterals;
 
 namespace IconStore
 {
+
+// A picture replaced under an icon name Plasma has already drawn: Plasma
+// keeps the icons it has drawn by their name, and neither a new path nor a
+// change of icon theme makes it draw them again, only its restart.
+static bool s_replaced = false;
 
 static KConfigGroup settings()
 {
@@ -131,11 +138,147 @@ static bool writeFile(const QString &path, const QByteArray &contents)
     return file.open(QIODevice::WriteOnly) && file.write(contents) == contents.size() && file.commit();
 }
 
+// The status icons (the tray's, a panel's) of the base, in the kde-rice
+// theme's text colour: WhiteSur draws them in a grey of its own (#363636, or
+// #f2f2f2 on dark), while Plasma draws the text beside them (the clock) in the
+// colour scheme's, and does not colour them itself. Copies with the colour
+// replaced, in the theme's own directories ("tinted/status/22" ...), which
+// come before the base's; made again only when the base or the colour
+// changes. Not for the names the user has a picture of their own for.
+static const QString s_stamp = u".kde-rice-tint"_s;
+
+// the text colour of the kde-rice theme chosen now
+static QString textColour()
+{
+    const auto theme = ThemeStore::load(ThemeStore::choice().theme);
+    return theme ? theme->color(u"fg"_s).name() : QString();
+}
+
+// a base theme's directories of status icons, with their index entries
+static QList<std::pair<QString, QHash<QString, QString>>> statusDirs(const QString &theme)
+{
+    QList<std::pair<QString, QHash<QString, QString>>> found;
+    const QString root = themePath(theme);
+    if (root.isEmpty()) {
+        return found;
+    }
+    KConfig index(root + "/index.theme"_L1, KConfig::SimpleConfig);
+    const QStringList dirs = index.group(u"Icon Theme"_s).readEntry("Directories", QStringList());
+    for (const QString &dir : dirs) {
+        const KConfigGroup group = index.group(dir);
+        if (group.readEntry("Context") != "Status"_L1) {
+            continue;
+        }
+        QHash<QString, QString> entries;
+        for (const auto *key : {"Size", "Context", "Type", "MinSize", "MaxSize", "Threshold", "Scale"}) {
+            const QString value = group.readEntry(key);
+            if (!value.isEmpty()) {
+                entries.insert(QString::fromLatin1(key), value);
+            }
+        }
+        found += {dir, entries};
+    }
+    return found;
+}
+
+static bool tint(const QString &theme, const QString &colour, QList<std::pair<QString, QHash<QString, QString>>> &dirs)
+{
+    const QString tinted = themeDir() + "/tinted"_L1;
+    dirs.clear();
+    if (!colour.isEmpty()) {
+        dirs = statusDirs(theme);
+    }
+    QString stamp = theme + u'|' + colour;
+    const auto mineNow = QDir(overridesDir()).entryInfoList({u"*.svg"_s}, QDir::Files, QDir::Name);
+    for (const QFileInfo &file : mineNow) {
+        stamp += u'|' + file.fileName() + u':' + QString::number(file.size()) + u':' + QString::number(file.lastModified().toSecsSinceEpoch());
+    }
+    QFile current(tinted + u'/' + s_stamp);
+    if (current.open(QIODevice::ReadOnly) && QString::fromUtf8(current.readAll()) == stamp) {
+        return false;
+    }
+    current.close();
+    QDir(tinted).removeRecursively();
+    if (dirs.isEmpty()) {
+        return true;
+    }
+    // the grey the base draws its glyphs in: what most of its ColorScheme-Text says
+    static const QRegularExpression scheme(u"\\.ColorScheme-Text\\s*\\{\\s*color:\\s*(#[0-9a-fA-F]{6})"_s);
+    QHash<QString, int> greys;
+    const QString root = themePath(theme);
+    for (const auto &[dir, entries] : std::as_const(dirs)) {
+        const auto files = QDir(root + u'/' + dir).entryInfoList({u"*.svg"_s}, QDir::Files);
+        for (const QFileInfo &file : files) {
+            QFile in(file.absoluteFilePath());
+            if (in.open(QIODevice::ReadOnly)) {
+                const auto match = scheme.match(QString::fromUtf8(in.read(4096)));
+                if (match.hasMatch()) {
+                    ++greys[match.captured(1).toLower()];
+                }
+            }
+        }
+    }
+    QString grey;
+    for (auto it = greys.cbegin(); it != greys.cend(); ++it) {
+        if (grey.isEmpty() || it.value() > greys.value(grey)) {
+            grey = it.key();
+        }
+    }
+    if (grey.isEmpty()) {
+        dirs.clear();
+        return true;
+    }
+    const QStringList own = overrides();
+    for (const auto &[dir, entries] : std::as_const(dirs)) {
+        QDir().mkpath(tinted + u'/' + dir);
+        const auto files = QDir(root + u'/' + dir).entryInfoList({u"*.svg"_s}, QDir::Files);
+        for (const QFileInfo &file : files) {
+            if (own.contains(file.completeBaseName())) {
+                continue;
+            }
+            QFile in(file.absoluteFilePath());
+            if (!in.open(QIODevice::ReadOnly)) {
+                continue;
+            }
+            QString svg = QString::fromUtf8(in.readAll());
+            if (!svg.contains(grey, Qt::CaseInsensitive)) {
+                continue;
+            }
+            svg.replace(grey, colour, Qt::CaseInsensitive);
+            QFile out(tinted + u'/' + dir + u'/' + file.fileName());
+            if (out.open(QIODevice::WriteOnly)) {
+                out.write(svg.toUtf8());
+            }
+        }
+    }
+    // the user's own pictures drawn in the same grey (a tray glyph made in
+    // WhiteSur's style): theirs, coloured too, before everything else
+    QDir().mkpath(tinted + "/own"_L1);
+    const auto mine = QDir(overridesDir()).entryInfoList({u"*.svg"_s}, QDir::Files);
+    for (const QFileInfo &file : mine) {
+        QFile in(file.absoluteFilePath());
+        if (!in.open(QIODevice::ReadOnly)) {
+            continue;
+        }
+        QString svg = QString::fromUtf8(in.readAll());
+        if (!scheme.match(svg).hasMatch() || !svg.contains(grey, Qt::CaseInsensitive)) {
+            continue;
+        }
+        svg.replace(grey, colour, Qt::CaseInsensitive);
+        QFile out(tinted + "/own/"_L1 + file.fileName());
+        if (out.open(QIODevice::WriteOnly)) {
+            out.write(svg.toUtf8());
+        }
+    }
+    writeFile(tinted + u'/' + s_stamp, stamp.toUtf8());
+    return true;
+}
+
 bool write(const QString &mode)
 {
     QDir().mkpath(overridesDir());
     QDir().mkpath(themeDir());
-    // the user's pictures are the theme's one directory, as they are
+    // the user's pictures are the theme's first directory, as they are
     const QString link = themeDir() + "/overrides"_L1;
     bool changed = false;
     if (QFileInfo(link).symLinkTarget() != overridesDir()) {
@@ -150,18 +293,33 @@ bool write(const QString &mode)
             inherits += name;
         }
     }
+    QList<std::pair<QString, QHash<QString, QString>>> tintedDirs;
+    if (tint(inherits.first(), textColour(), tintedDirs)) {
+        changed = true;
+        // Plasma lets go of the icons it has drawn only when it restarts
+        s_replaced = true;
+    }
+    QStringList directories;
+    QString sections;
+    if (!tintedDirs.isEmpty()) {
+        directories += u"tinted/own"_s;
+        sections += u"\n[tinted/own]\nSize=64\nMinSize=8\nMaxSize=512\nType=Scalable\nContext=Status\n"_s;
+    }
+    directories += u"overrides"_s;
+    sections += u"\n[overrides]\nSize=64\nMinSize=8\nMaxSize=512\nType=Scalable\nContext=Applications\n"_s;
+    for (const auto &[dir, entries] : std::as_const(tintedDirs)) {
+        directories += "tinted/"_L1 + dir;
+        sections += u"\n[tinted/%1]\n"_s.arg(dir);
+        for (auto it = entries.cbegin(); it != entries.cend(); ++it) {
+            sections += it.key() + u'=' + it.value() + u'\n';
+        }
+    }
     const QString index = u"[Icon Theme]\n"
                           "Name=kde-rice\n"
                           "Comment=Your own icons, then %1's (written by kde-rice; change it there)\n"
                           "Inherits=%2\n"
-                          "Directories=overrides\n"
-                          "\n"
-                          "[overrides]\n"
-                          "Size=64\n"
-                          "MinSize=8\n"
-                          "MaxSize=512\n"
-                          "Type=Scalable\n"
-                          "Context=Applications\n"_s.arg(inherits.first(), inherits.join(u','));
+                          "Directories=%3\n"_s.arg(inherits.first(), inherits.join(u','), directories.join(u','))
+        + sections;
     changed |= writeFile(themeDir() + "/index.theme"_L1, index.toUtf8());
     return changed;
 }
@@ -178,11 +336,6 @@ void use()
     QProcess::execute(u"/usr/lib/plasma-changeicons"_s, {themeName()});
     reload();
 }
-
-// A picture replaced under an icon name Plasma has already drawn: Plasma
-// keeps the icons it has drawn by their name, and neither a new path nor a
-// change of icon theme makes it draw them again, only its restart.
-static bool s_replaced = false;
 
 void reload()
 {
