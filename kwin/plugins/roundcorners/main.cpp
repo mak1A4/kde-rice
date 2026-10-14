@@ -118,7 +118,9 @@ private:
     // a popup of Plasma's, in a frame of its style
     static bool plasmaPopup(const Window *window)
     {
-        return window->resourceClass() == QLatin1String("plasmashell") && !window->isDeleted()
+        // applet popups say "org.kde.plasmashell", the panel and tooltips "plasmashell"
+        const QString owner = window->resourceClass();
+        return (owner == QLatin1String("plasmashell") || owner == QLatin1String("org.kde.plasmashell")) && !window->isDeleted()
             && (window->isTooltip() || window->isAppletPopup() || window->isNotification() || window->isCriticalNotification() || window->isOnScreenDisplay());
     }
 
