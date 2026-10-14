@@ -19,7 +19,6 @@
     "terminalSelection": "#c4c8da"
   },
   "apps": {
-    "nvim": "tokyonight-day",
-    "vscode": "Tokyo Night Light"
+    "nvim": "tokyonight-day"
   }
 }

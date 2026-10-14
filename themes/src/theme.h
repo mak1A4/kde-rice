@@ -12,7 +12,7 @@
 // A theme: a file of colours, `<name>.json`,
 //
 //     { "colors": { "bg": "#272e33", ..., "terminal": [16 colours] },
-//       "apps": { "nvim": "everforest", "vscode": "Everforest Dark", "btop": "..." } }
+//       "apps": { "nvim": "everforest", "btop": "..." } }
 //
 // The names are those of the old kde-quickshell themes: `bg` (a window),
 // `view` (what an application shows in it), `surface`, `surfaceHover`,

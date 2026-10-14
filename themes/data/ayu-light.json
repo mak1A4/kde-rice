@@ -19,7 +19,6 @@
     "terminalSelection": "#d2d5d8"
   },
   "apps": {
-    "nvim": "ayu-light",
-    "vscode": "Ayu Light"
+    "nvim": "ayu-light"
   }
 }

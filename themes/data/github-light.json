@@ -19,7 +19,6 @@
     "terminalSelection": "#d0d7de"
   },
   "apps": {
-    "nvim": "github_light_default",
-    "vscode": "GitHub Light Default"
+    "nvim": "github_light_default"
   }
 }

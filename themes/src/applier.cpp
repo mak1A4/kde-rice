@@ -113,7 +113,6 @@ QHash<QString, QString> values(const Theme &theme)
     values.insert(u"scheme"_s, "KDERice"_L1 + QString(theme.title).remove(QRegularExpression(u"[^A-Za-z0-9]"_s)));
     values.insert(u"mode"_s, dark ? u"dark"_s : u"light"_s);
     values.insert(u"nvim"_s, theme.apps.value(u"nvim"_s, u"default"_s).toString());
-    values.insert(u"vscode"_s, theme.apps.value(u"vscode"_s).toString());
     values.insert(u"btop"_s, theme.apps.value(u"btop"_s).toString());
     for (auto it = colours.cbegin(); it != colours.cend(); ++it) {
         const QColor &colour = it.value();
@@ -346,16 +345,28 @@ static void applyBtop(Context &context)
     }
 }
 
-// VS Code's settings name the colour theme, and it reads them again when
-// they change. All three names: with "follow the system" on, it takes the
-// dark or the light one and not the first. Its extension has to be
-// installed.
+// VS Code keeps its own built-in theme (Dark Modern or Light Modern, which
+// it takes by the system's light or dark) and is coloured over it with the
+// theme's colours: `workbench.colorCustomizations` in its settings, so no
+// extension is needed for any theme, the user's own included. The entry is
+// written between two comments of ours (VS Code's settings allow comments)
+// and replaced there at each change; an entry of the user's own elsewhere
+// is left alone. VS Code reads its settings again by itself.
+static const auto s_vscodeStart = u"    // kde-rice: the theme's colours, rewritten at each change of theme"_s;
+static const auto s_vscodeEnd = u"    // kde-rice: end"_s;
+
 static void applyVsCode(Context &context)
 {
-    const QString label = context.values[u"vscode"_s];
-    if (label.isEmpty()) {
+    const QString colours = outputDir() + "/vscode.json"_L1;
+    context.render(u"vscode.json.tpl"_s, colours);
+    QFile rendered(colours);
+    if (!rendered.open(QIODevice::ReadOnly)) {
         return;
     }
+    // indented to sit inside the settings' object
+    const QString object = QString::fromUtf8(rendered.readAll()).trimmed().replace(u'\n', "\n    "_L1);
+    const QString block = s_vscodeStart + "\n    \"workbench.colorCustomizations\": "_L1 + object + ",\n"_L1 + s_vscodeEnd;
+
     for (const auto *editor : {"Code", "Code - OSS", "VSCodium"}) {
         const QString path = configHome() + u'/' + QString::fromLatin1(editor) + "/User/settings.json"_L1;
         QFile file(path);
@@ -364,17 +375,19 @@ static void applyVsCode(Context &context)
         }
         QString text = QString::fromUtf8(file.readAll());
         file.close();
-        for (const auto *key : {"workbench.colorTheme", "workbench.preferredDarkColorTheme", "workbench.preferredLightColorTheme"}) {
-            const QRegularExpression existing(u"(\"%1\"\\s*:\\s*)\"[^\"]*\""_s.arg(QRegularExpression::escape(QString::fromLatin1(key))));
-            const QString quoted = u"\"%1\""_s.arg(label);
-            if (existing.match(text).hasMatch()) {
-                text.replace(existing, "\\1"_L1 + quoted);
-            } else {
-                const qsizetype brace = text.indexOf(u'{');
-                if (brace >= 0) {
-                    text.insert(brace + 1, u"\n    \"%1\": %2,"_s.arg(QString::fromLatin1(key), quoted));
-                }
+        const qsizetype from = text.indexOf(s_vscodeStart);
+        const qsizetype to = from < 0 ? -1 : text.indexOf(s_vscodeEnd, from);
+        if (from >= 0 && to >= 0) {
+            text.replace(from, to + s_vscodeEnd.size() - from, block);
+        } else if (text.contains("\"workbench.colorCustomizations\""_L1)) {
+            context.problems += u"%1 has workbench.colorCustomizations of its own: VS Code left as it is"_s.arg(path);
+            continue;
+        } else {
+            const qsizetype brace = text.indexOf(u'{');
+            if (brace < 0) {
+                continue;
             }
+            text.insert(brace + 1, u'\n' + block);
         }
         write(path, text.toUtf8());
     }

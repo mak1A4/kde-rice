@@ -36,7 +36,7 @@ A theme is one JSON file of colours, `<name>.json`:
     "terminalBackground": "#1e2326", "terminalForeground": "#d3c6aa",
     "terminalCursor": "#e69875", "terminalSelection": "#4c3743"
   },
-  "apps": { "nvim": "everforest", "vscode": "Everforest Dark", "btop": "everforest-dark-hard" }
+  "apps": { "nvim": "everforest", "btop": "everforest-dark-hard" }
 }
 ```
 
@@ -55,7 +55,10 @@ program has one of its own.
   theme without one gives Plasma's wallpaper back.
 - **What a theme changes**: KDE's colour scheme (Qt/KDE applications, title
   bars, light or dark for everything that asks), a `-Dark`/`-Light` icon
-  theme pair, GTK 4/libadwaita, btop and VS Code directly; Ghostty, WezTerm,
+  theme pair, GTK 4/libadwaita and btop directly; VS Code keeps its
+  built-in Dark/Light Modern theme, coloured with the theme's colours
+  (`workbench.colorCustomizations` between two `// kde-rice` comments in its
+  settings), so no theme extensions are installed; Ghostty, WezTerm,
   tmux and Neovim through files in `~/.local/state/kde-rice/theme/`, which
   their configurations include (`config-file = ?"~/.local/state/kde-rice/theme/ghostty.conf"`
   and the like).

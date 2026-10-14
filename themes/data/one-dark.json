@@ -20,7 +20,6 @@
   },
   "apps": {
     "nvim": "onedark",
-    "vscode": "Atom One Dark",
     "btop": "onedark"
   }
 }

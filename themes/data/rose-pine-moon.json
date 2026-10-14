@@ -19,7 +19,6 @@
     "terminalSelection": "#44415a"
   },
   "apps": {
-    "nvim": "rose-pine-moon",
-    "vscode": "Rosé Pine Moon"
+    "nvim": "rose-pine-moon"
   }
 }

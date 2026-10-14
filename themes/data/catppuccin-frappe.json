@@ -19,7 +19,6 @@
     "terminalSelection": "#626880"
   },
   "apps": {
-    "nvim": "catppuccin-frappe",
-    "vscode": "Catppuccin Frappé"
+    "nvim": "catppuccin-frappe"
   }
 }

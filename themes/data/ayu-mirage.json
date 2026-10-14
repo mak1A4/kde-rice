@@ -19,7 +19,6 @@
     "terminalSelection": "#444a55"
   },
   "apps": {
-    "nvim": "ayu-mirage",
-    "vscode": "Ayu Mirage"
+    "nvim": "ayu-mirage"
   }
 }

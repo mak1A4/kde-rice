@@ -19,7 +19,6 @@
     "terminalSelection": "#dfdad9"
   },
   "apps": {
-    "nvim": "rose-pine-dawn",
-    "vscode": "Rosé Pine Dawn"
+    "nvim": "rose-pine-dawn"
   }
 }

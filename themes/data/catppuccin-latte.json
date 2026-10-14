@@ -19,7 +19,6 @@
     "terminalSelection": "#acb0be"
   },
   "apps": {
-    "nvim": "catppuccin-latte",
-    "vscode": "Catppuccin Latte"
+    "nvim": "catppuccin-latte"
   }
 }

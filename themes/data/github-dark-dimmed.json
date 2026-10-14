@@ -19,7 +19,6 @@
     "terminalSelection": "#373e47"
   },
   "apps": {
-    "nvim": "github_dark_dimmed",
-    "vscode": "GitHub Dark Dimmed"
+    "nvim": "github_dark_dimmed"
   }
 }

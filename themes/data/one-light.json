@@ -19,7 +19,6 @@
     "terminalSelection": "#ededed"
   },
   "apps": {
-    "nvim": "onelight",
-    "vscode": "Atom One Light"
+    "nvim": "onelight"
   }
 }

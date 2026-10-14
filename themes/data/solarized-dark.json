@@ -20,7 +20,6 @@
   },
   "apps": {
     "nvim": "solarized",
-    "vscode": "Solarized Dark",
     "btop": "solarized_dark"
   }
 }

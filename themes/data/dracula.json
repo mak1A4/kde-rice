@@ -20,7 +20,6 @@
   },
   "apps": {
     "nvim": "dracula",
-    "vscode": "Dracula Theme",
     "btop": "dracula"
   }
 }

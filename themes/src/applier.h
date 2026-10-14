@@ -20,7 +20,8 @@
 //                 files in ~/.local/state/kde-rice/theme, which the user's
 //                 own configurations include
 //   btop          ~/.config/btop/themes/kde-rice.theme
-//   VS Code       the theme's own colour theme, by name, in settings.json
+//   VS Code       its built-in theme coloured with the theme's colours
+//                 (settings.json), no extension needed
 //   background    the theme's picture or video on the desktop and the lock
 //                 screen, through kde-rice's wallpaper plugin; without one,
 //                 what they had before

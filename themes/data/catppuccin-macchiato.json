@@ -19,7 +19,6 @@
     "terminalSelection": "#5b6078"
   },
   "apps": {
-    "nvim": "catppuccin-macchiato",
-    "vscode": "Catppuccin Macchiato"
+    "nvim": "catppuccin-macchiato"
   }
 }

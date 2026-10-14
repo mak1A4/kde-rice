@@ -20,7 +20,6 @@
   },
   "apps": {
     "nvim": "gruvbox",
-    "vscode": "Gruvbox Dark Medium",
     "btop": "gruvbox_dark_v2"
   }
 }

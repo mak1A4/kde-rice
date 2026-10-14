@@ -19,7 +19,6 @@
     "terminalSelection": "#b8c1d6"
   },
   "apps": {
-    "nvim": "iceberg",
-    "vscode": "Iceberg Light"
+    "nvim": "iceberg"
   }
 }

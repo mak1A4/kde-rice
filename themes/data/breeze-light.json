@@ -19,7 +19,6 @@
     "terminalSelection": "#bdc3c7"
   },
   "apps": {
-    "nvim": "default",
-    "vscode": "Light Modern"
+    "nvim": "default"
   }
 }

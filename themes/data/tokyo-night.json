@@ -20,7 +20,6 @@
   },
   "apps": {
     "nvim": "tokyonight-night",
-    "vscode": "Tokyo Night",
     "btop": "tokyo-night"
   }
 }
