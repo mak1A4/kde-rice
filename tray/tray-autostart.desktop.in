@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=kde-rice tray
+Comment=Tray icons that follow the icon theme, for applications that send pictures
+Exec=kde-rice-tray
+Icon=preferences-desktop-icons
+NoDisplay=true
+OnlyShowIn=KDE;
+X-KDE-autostart-phase=2

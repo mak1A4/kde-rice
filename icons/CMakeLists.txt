@@ -34,9 +34,12 @@ add_custom_command(
     # glyph in the colour scheme's text colour), in every variant that has
     # its own status icons
     COMMAND sh -c "for dir in \"$1\"/*/status/32; do [ -L \"$dir\" ] || cp -f \"$2\"/*.svg \"$dir\"/; done" sh ${themes} ${CMAKE_CURRENT_SOURCE_DIR}/extra
+    # the tray glyphs kde-rice-tray names (tray/<app>.svg as kde-rice-<app>-tray)
+    COMMAND sh -c "for dir in \"$1\"/*/status/32; do [ -L \"$dir\" ] && continue; for f in \"$2\"/*.svg; do n=$(basename \"$f\" .svg); case $n in *-attention) b=kde-rice-\${n%-attention}-tray-attention ;; *) b=kde-rice-$n-tray ;; esac; cp -f \"$f\" \"$dir/$b.svg\"; done; done" sh ${themes} ${CMAKE_CURRENT_SOURCE_DIR}/tray
     # app icons a little larger: WhiteSur leaves a margin round each tile
     COMMAND $<TARGET_FILE:kde-rice-trim-icons> ${themes}/kde-rice-whitesur/apps ${themes}/kde-rice-whitesur-dark/apps
     DEPENDS ${whitesur_SOURCE_DIR}/install.sh kde-rice-trim-icons ${CMAKE_CURRENT_SOURCE_DIR}/extra/steam_tray_mono.svg
+            ${CMAKE_CURRENT_SOURCE_DIR}/tray/outlook.svg ${CMAKE_CURRENT_SOURCE_DIR}/tray/teams.svg
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMENT "Building WhiteSur ${WHITESUR_VERSION} as kde-rice-whitesur"
     VERBATIM

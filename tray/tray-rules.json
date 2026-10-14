@@ -1,0 +1,16 @@
+[
+    {
+        "name": "Teams for Linux",
+        "id": "Teams for Linux_status_icon_*",
+        "process": "teams-for-linux",
+        "icon": "kde-rice-teams-tray",
+        "attentionIcon": "kde-rice-teams-tray-attention"
+    },
+    {
+        "name": "Outlook for Linux",
+        "id": "chrome_status_icon_*",
+        "process": "outlook-for-linux",
+        "icon": "kde-rice-outlook-tray",
+        "attentionIcon": "kde-rice-outlook-tray-attention"
+    }
+]

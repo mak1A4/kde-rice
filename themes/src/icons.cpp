@@ -345,6 +345,17 @@ void use()
     reload();
 }
 
+// Plasma (the desktop and the panels; the windows stay) restarted in two
+// seconds, by a timer of systemd's under one name: changes close together
+// (several icons set one after the other) are one restart, where a restart
+// each would run into systemd's limit and leave Plasma stopped.
+static void restartPlasma()
+{
+    QProcess::execute(u"systemd-run"_s,
+                      {u"--user"_s, u"--quiet"_s, u"--on-active=2"_s, u"--unit=kde-rice-plasma-restart"_s, u"--timer-property=AccuracySec=100ms"_s,
+                       u"systemctl"_s, u"--user"_s, u"restart"_s, u"plasma-plasmashell.service"_s});
+}
+
 void reload()
 {
     // what plasma-changeicons does: the shared cache of drawn icons goes,
@@ -365,8 +376,7 @@ void reload()
         QDBusMessage::createMethodCall(u"org.freedesktop.DBus"_s, u"/org/freedesktop/DBus"_s, u"org.freedesktop.DBus"_s, u"GetId"_s));
     if (s_replaced) {
         s_replaced = false;
-        // the desktop and the panels; the windows stay
-        QProcess::execute(u"systemctl"_s, {u"--user"_s, u"restart"_s, u"plasma-plasmashell.service"_s});
+        restartPlasma();
     }
 }
 
