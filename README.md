@@ -15,6 +15,7 @@ be changed from outside is changed from here, and Plasma updates stay a
 | `themes/` | Themes (`data/`), what they are written into for each program (`templates/`), the wallpaper that shows a theme's background, and the code that applies them | KDE Frameworks |
 | `launcher/` | The launcher: a Spotlight-like search on Meta+Space, with KRunner's plugins underneath | KRunner, LayerShellQt |
 | `icons/` | kde-rice-whitesur: WhiteSur built from its sources and shipped with kde-rice, the base of kde-rice's icon theme | bash, gtk-update-icon-cache |
+| `tray/` | `kde-rice-tray`: tray entries that name a theme icon in place of applications' that send a picture | Qt D-Bus |
 | `gaps/` | `kde-rice-gaps`: room kept free along the screen's edges, so maximized windows keep a gap and a floating panel keeps floating | LayerShellQt |
 | `kwin/plugins/` | KWin plugins (C++), e.g. rounded corners on every window | KWin's internal API |
 | `kwin/decoration/breeze/` | Breeze title bars, patched to keep their corners | KDecoration3, Breeze's sources |
@@ -110,6 +111,34 @@ Teams and Outlook (the Electron ones), which hand the tray a picture of their
 own, get kde-rice's glyphs (`icons/tray`) in the same colour, through their
 config.json.
 
+### Tray entries that follow the theme
+
+Some applications (Electron ones: Teams, Outlook) hand the tray a picture
+of their own instead of naming an icon, so no icon theme reaches them.
+`kde-rice-tray` (started at login) puts an entry of its own in the tray for
+each of them that names a theme icon, and passes everything else through to
+the application's entry: clicks, scrolling, its menu, tooltip and status. The
+application's own entry is hidden with Plasma's `disabledStatusNotifiers`
+while it runs, and comes back when it stops. While an application's own
+picture is not its first one (an unread count painted in), the rule's
+`attentionIcon` is shown.
+
+Which applications, by rules in `tray-rules.json` (kde-rice's in
+`/usr/share/kde-rice`, yours in `~/.config/kde-rice`, a rule of the same name
+replacing kde-rice's):
+
+```json
+[{ "name": "Teams for Linux", "id": "Teams for Linux_status_icon_*",
+   "process": "teams-for-linux", "icon": "kde-rice-teams-tray",
+   "attentionIcon": "kde-rice-teams-tray-attention" }]
+```
+
+`id` is the entry's id (wildcards), `process` the program that owns it (for
+the many Electron entries that are all `chrome_status_icon_1`), `icon` any
+icon name. A glyph of kde-rice's own goes in `icons/tray/<app>.svg` (and
+`<app>-attention.svg`), drawn in `.ColorScheme-Text`: it is installed as
+`kde-rice-<app>-tray` and coloured with the theme like the tray's other icons.
+
 From a terminal: `kde-rice-theme icons use | base <theme> | set <name> <file>
 | reset <name> | find <name>`.
 
@@ -174,7 +203,7 @@ once), starts the launcher and the gaps again in their new build, and says
 when KWin's parts changed and need a new login.
 
 Options: `-DKDERICE_APP=OFF`, `-DKDERICE_THEMES=OFF`, `-DKDERICE_LAUNCHER=OFF`,
-`-DKDERICE_ICONS=OFF`, `-DKDERICE_GAPS=OFF`, `-DKDERICE_KWIN_PLUGINS=OFF`,
+`-DKDERICE_ICONS=OFF`, `-DKDERICE_TRAY=OFF`, `-DKDERICE_GAPS=OFF`, `-DKDERICE_KWIN_PLUGINS=OFF`,
 `-DKDERICE_DECORATION=OFF`. The decoration fetches Breeze's sources for the
 installed Plasma release from download.kde.org; `-DBREEZE_URL=` points it at
 a local archive instead.

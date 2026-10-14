@@ -10,9 +10,10 @@
 // application's own entry is hidden with Plasma's setting for it
 // (disabledStatusNotifiers of the system tray), while this runs.
 //
-// Plasma hides by the entry's id, and Electron's ids can be shared
-// (chrome_status_icon_1): every entry with a hidden id is passed on, those
-// the rules do not name unchanged, picture and all.
+// Plasma hides by the id it knows an entry by (Electron's, which are all
+// chrome_status_icon_<n>, with their program's name: plasmaId()); should
+// another entry share a hidden id, it is passed on too, unchanged, picture
+// and all.
 //
 // Rules: tray-rules.json, kde-rice's in its data directory, then the
 // user's in ~/.config/kde-rice (same name: the user's), as
@@ -150,6 +151,40 @@ QString processOf(const QString &service)
     return QFileInfo(QFile::symLinkTarget(u"/proc/%1/exe"_s.arg(pid.value()))).fileName();
 }
 
+// The id Plasma's system tray knows an entry by, which is what its setting
+// hides: the entry's own, but for Chromium's and Electron's, which all say
+// chrome_status_icon_<n>, the name of their program after an @ (the folder
+// of the .asar on its command line, else /proc/<pid>/comm), as
+// plasma-workspace's systemtraymodel.cpp does.
+QString plasmaId(const QString &service, const QString &id)
+{
+    if (!id.startsWith("chrome_status_icon_"_L1)) {
+        return id;
+    }
+    const QDBusReply<uint> pid = QDBusConnection::sessionBus().interface()->servicePid(service);
+    if (!pid.isValid()) {
+        return id;
+    }
+    const QString proc = u"/proc/%1/"_s.arg(pid.value());
+    QFile cmdline(proc + "cmdline"_L1);
+    if (cmdline.open(QIODevice::ReadOnly)) {
+        const QList<QByteArray> arguments = cmdline.readAll().split('\0');
+        for (const QByteArray &argument : arguments) {
+            if (argument.endsWith(".asar")) {
+                return id + u'@' + QFileInfo(QFileInfo(QString::fromUtf8(argument)).path()).fileName();
+            }
+        }
+    }
+    QFile comm(proc + "comm"_L1);
+    if (comm.open(QIODevice::ReadOnly)) {
+        const QString name = QString::fromUtf8(comm.readAll()).trimmed();
+        if (!name.isEmpty()) {
+            return id + u'@' + name;
+        }
+    }
+    return id;
+}
+
 QVariant itemProperty(const QString &service, const QString &path, const QString &name)
 {
     auto message = QDBusMessage::createMethodCall(service, path, s_properties, u"Get"_s);
@@ -182,8 +217,9 @@ class Proxy : public QDBusVirtualObject
     Q_OBJECT
 
 public:
-    Proxy(const QString &service, const QString &path, const Rule *rule, int number)
+    Proxy(const QString &service, const QString &path, const Rule *rule, const QString &process, int number)
         : m_service(service)
+        , m_id(u"kde-rice:"_s + (process.isEmpty() ? QString::number(number) : process))
         , m_path(path)
         , m_connection(QDBusConnection::connectToBus(QDBusConnection::SessionBus, u"kde-rice-tray-%1"_s.arg(number)))
     {
@@ -265,7 +301,7 @@ public:
                 return;
             }
             QVariantMap properties = qdbus_cast<QVariantMap>(reply.arguments().value(0));
-            for (const auto *name : {"IconName", "IconThemePath", "IconPixmap", "Menu"}) {
+            for (const auto *name : {"Id", "IconName", "IconThemePath", "IconPixmap", "Menu"}) {
                 const QVariant own = ownProperty(QString::fromLatin1(name));
                 if (own.isValid()) {
                     properties.insert(QString::fromLatin1(name), own);
@@ -297,6 +333,10 @@ private:
     // application's says
     QVariant ownProperty(const QString &name) const
     {
+        // an id of its own: Plasma hides the application's by its id
+        if (name == "Id"_L1) {
+            return m_id;
+        }
         if (name == "Menu"_L1 && !m_menu.isEmpty()) {
             return QVariant::fromValue(QDBusObjectPath(s_menuPath));
         }
@@ -323,6 +363,7 @@ private:
     }
 
     QString m_service;
+    QString m_id;
     QString m_path;
     QString m_menu;
     QString m_icon;
@@ -383,6 +424,8 @@ private:
             QString service;
             QString path;
             QString id;
+            QString plasmaId;
+            QString process;
             const Rule *rule = nullptr;
         };
         QList<Entry> entries;
@@ -401,26 +444,28 @@ private:
                 continue;
             }
             entry.id = itemProperty(entry.service, entry.path, u"Id"_s).toString();
-            const QString process = processOf(entry.service);
+            entry.plasmaId = plasmaId(entry.service, entry.id);
+            entry.process = processOf(entry.service);
             for (const Rule &rule : std::as_const(m_rules)) {
-                if (rule.id.match(entry.id).hasMatch() && (rule.process.isEmpty() || rule.process == process)) {
+                if (rule.id.match(entry.id).hasMatch() && (rule.process.isEmpty() || rule.process == entry.process)) {
                     entry.rule = &rule;
-                    hidden += entry.id;
+                    hidden += entry.plasmaId;
                     break;
                 }
             }
             entries += entry;
         }
 
-        // a proxy for every entry whose id is hidden; none for the others
+        // a proxy for every entry whose id is hidden (another entry may share
+        // it); none for the others
         QSet<QString> wanted;
         for (const Entry &entry : std::as_const(entries)) {
-            if (!hidden.contains(entry.id)) {
+            if (!hidden.contains(entry.plasmaId)) {
                 continue;
             }
             wanted += entry.key;
             if (!m_proxies.contains(entry.key)) {
-                m_proxies.insert(entry.key, std::make_shared<Proxy>(entry.service, entry.path, entry.rule, ++m_count));
+                m_proxies.insert(entry.key, std::make_shared<Proxy>(entry.service, entry.path, entry.rule, entry.process, ++m_count));
             }
         }
         for (auto it = m_proxies.begin(); it != m_proxies.end();) {

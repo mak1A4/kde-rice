@@ -84,10 +84,18 @@ restart() {
         shift
         setsid "$@" > /dev/null 2>&1 < /dev/null &
         echo "restarted $1"
+        return 0
     fi
+    return 1
 }
 restart kde-rice-launcher kde-rice-launcher --background
 restart kde-rice-gaps kde-rice-gaps
+# the tray's entries that follow the icon theme: started now if they are not
+# running yet (later, by the autostart entry at login)
+if ! restart kde-rice-tray kde-rice-tray; then
+    setsid kde-rice-tray > /dev/null 2>&1 < /dev/null &
+    echo "started kde-rice-tray"
+fi
 
 if { [ "$(cat "$wallpaper"/contents/ui/*.qml 2> /dev/null | md5sum)" != "$wallpaper_before" ] || [ "$(icons_sum)" != "$icons_before" ]; } \
     && pgrep -x plasmashell > /dev/null; then
