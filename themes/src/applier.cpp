@@ -11,6 +11,8 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QProcess>
 #include <QRegularExpression>
 #include <QSaveFile>
@@ -401,6 +403,48 @@ static void applyVsCode(Context &context)
     }
 }
 
+// Teams for Linux and Outlook for Linux (Electron) hand the tray a picture of
+// their own, which no icon theme reaches; both have a one-colour picture,
+// black or white, chosen in their config.json: black on a light theme. Read
+// when they start.
+static void applyElectronTrays(Context &context)
+{
+    const bool dark = context.values[u"mode"_s] == "dark"_L1;
+    const QString type = dark ? u"light"_s : u"dark"_s;
+    // the application, and where its setting is (Teams has a newer name for it)
+    const QList<std::pair<QString, QStringList>> apps = {
+        {u"teams-for-linux"_s, {u"tray"_s, u"iconType"_s}},
+        {u"outlook-for-linux"_s, {u"appIconType"_s}},
+    };
+    for (const auto &[app, key] : apps) {
+        const QString dir = configHome() + u'/' + app;
+        if (!QFileInfo(dir).isDir()) {
+            continue;
+        }
+        const QString path = dir + "/config.json"_L1;
+        QFile file(path);
+        QJsonObject config;
+        if (file.open(QIODevice::ReadOnly)) {
+            QJsonParseError error;
+            const QJsonDocument document = QJsonDocument::fromJson(file.readAll(), &error);
+            if (!document.isObject()) {
+                context.problems += u"%1 cannot be read (%2): its tray icon left as it is"_s.arg(path, error.errorString());
+                continue;
+            }
+            config = document.object();
+            file.close();
+        }
+        if (key.size() == 2) {
+            QJsonObject inner = config.value(key[0]).toObject();
+            inner.insert(key[1], type);
+            config.insert(key[0], inner);
+        } else {
+            config.insert(key[0], type);
+        }
+        write(path, QJsonDocument(config).toJson());
+    }
+}
+
 // ---- the background ------------------------------------------------------
 
 static QString evaluateInPlasma(const QString &script)
@@ -555,6 +599,7 @@ QStringList apply(const Theme &theme, const QString &background, const Options &
     applyTerminals(context);
     applyBtop(context);
     applyVsCode(context);
+    applyElectronTrays(context);
     applyBackground(context, background);
     return context.problems;
 }
