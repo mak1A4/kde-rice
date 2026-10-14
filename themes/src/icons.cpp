@@ -179,6 +179,11 @@ void use()
     reload();
 }
 
+// A picture replaced under an icon name Plasma has already drawn: Plasma
+// keeps the icons it has drawn by their name, and neither a new path nor a
+// change of icon theme makes it draw them again, only its restart.
+static bool s_replaced = false;
+
 void reload()
 {
     // what plasma-changeicons does: the shared cache of drawn icons goes,
@@ -197,6 +202,11 @@ void reload()
     // the signals, in order, so they are out once it returns.
     QDBusConnection::sessionBus().call(
         QDBusMessage::createMethodCall(u"org.freedesktop.DBus"_s, u"/org/freedesktop/DBus"_s, u"org.freedesktop.DBus"_s, u"GetId"_s));
+    if (s_replaced) {
+        s_replaced = false;
+        // the desktop and the panels; the windows stay
+        QProcess::execute(u"systemctl"_s, {u"--user"_s, u"restart"_s, u"plasma-plasmashell.service"_s});
+    }
 }
 
 QList<Theme> installed()
@@ -335,7 +345,11 @@ void removeOverride(const QString &name)
 bool trimOverride(const QString &name)
 {
     const QString path = overrideFor(name);
-    return (path.endsWith(".svg"_L1) || path.endsWith(".png"_L1)) && IconTrim::trimFile(path);
+    if ((path.endsWith(".svg"_L1) || path.endsWith(".png"_L1)) && IconTrim::trimFile(path)) {
+        s_replaced = true;
+        return true;
+    }
+    return false;
 }
 
 bool setOverride(const QString &name, const QString &picture, bool trim)
@@ -355,6 +369,7 @@ bool setOverride(const QString &name, const QString &picture, bool trim)
         return false;
     }
     QFile::setPermissions(part, QFile::ReadOwner | QFile::WriteOwner | QFile::ReadGroup | QFile::ReadOther);
+    s_replaced |= !overrideFor(name).isEmpty();
     removeOverride(name);
     if (!QFile::rename(part, target)) {
         return false;

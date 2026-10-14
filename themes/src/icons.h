@@ -31,8 +31,11 @@ bool write(const QString &mode);
 bool inUse();
 // makes them the ones in use
 void use();
-// KDE's applications draw their icons again (after a change of the theme)
+// KDE's applications draw their icons again (after a change of the theme);
+// after a picture was replaced under an icon name already drawn, Plasma is
+// restarted (its desktop and panels), as nothing else makes it let go of it
 void reload();
+
 
 struct Theme {
     QString id; // its directory's name
