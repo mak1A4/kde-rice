@@ -10,13 +10,14 @@ pkgrel=1
 pkgdesc="One place to customize KDE Plasma: a hub application and the KWin and Plasma parts it switches on"
 arch=(x86_64)
 url="https://github.com/mak1A4/kde-rice"
+# kde-rice GPL-3; WhiteSur (shipped as kde-rice-whitesur) GPL-3
 license=(GPL-3.0-or-later)
 depends=(kwin kdecoration kconfig kcoreaddons ki18n kcolorscheme kguiaddons kiconthemes kitemmodels
          kirigami kirigami-addons qqc2-desktop-style qt6-base qt6-declarative qt6-multimedia
          krunner kglobalaccel kdbusaddons layer-shell-qt plasma-workspace)
 optdepends=('ffmpeg: pictures of backgrounds on the Appearance page'
             'plasma-login-manager: the login screen in step with the session')
-makedepends=(cmake extra-cmake-modules ninja git patch)
+makedepends=(cmake extra-cmake-modules ninja git patch gtk-update-icon-cache)
 provides=(kde-rice)
 conflicts=(kde-rice)
 

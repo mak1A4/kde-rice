@@ -128,8 +128,8 @@ FormCard.FormCardPage {
         }
         FormCard.FormTextDelegate {
             visible: !icons.whiteSurInstalled
-            text: i18n("WhiteSur is not installed")
-            description: i18n("Install it with: paru -S whitesur-icon-theme")
+            text: i18n("kde-rice's WhiteSur is not installed yet")
+            description: i18n("It comes with kde-rice: run install.sh in the kde-rice folder.")
         }
     }
 

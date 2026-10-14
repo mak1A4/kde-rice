@@ -63,7 +63,7 @@ bool IconModel::whiteSurInstalled() const
 {
     const auto installed = IconStore::installed();
     return std::any_of(installed.cbegin(), installed.cend(), [](const auto &theme) {
-        return theme.id.startsWith("WhiteSur"_L1);
+        return theme.id.startsWith("kde-rice-whitesur"_L1) || theme.id.startsWith("WhiteSur"_L1);
     });
 }
 

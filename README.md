@@ -14,6 +14,7 @@ be changed from outside is changed from here, and Plasma updates stay a
 | `app/` | The hub: a Kirigami application (QML + C++) | Qt, KDE Frameworks |
 | `themes/` | Themes (`data/`), what they are written into for each program (`templates/`), the wallpaper that shows a theme's background, and the code that applies them | KDE Frameworks |
 | `launcher/` | The launcher: a Spotlight-like search on Meta+Space, with KRunner's plugins underneath | KRunner, LayerShellQt |
+| `icons/` | kde-rice-whitesur: WhiteSur built from its sources and shipped with kde-rice, the base of kde-rice's icon theme | bash, gtk-update-icon-cache |
 | `gaps/` | `kde-rice-gaps`: room kept free along the screen's edges, so maximized windows keep a gap and a floating panel keeps floating | LayerShellQt |
 | `kwin/plugins/` | KWin plugins (C++), e.g. rounded corners on every window | KWin's internal API |
 | `kwin/decoration/breeze/` | Breeze title bars, patched to keep their corners | KDecoration3, Breeze's sources |
@@ -93,8 +94,8 @@ window overlaps). Switched on, with the gap's size, on the hub's Windows page
 ## Icons
 
 kde-rice has an icon theme of its own, `kde-rice` in `~/.local/share/icons`:
-a base theme (WhiteSur by default, in its light or dark variant with the
-kde-rice theme; then Papirus, Breeze, hicolor) with your own picture for any
+a base theme (kde-rice-whitesur by default, in its light or dark variant
+with the kde-rice theme; then Papirus, Breeze, hicolor) with your own picture for any
 icon name on top, kept in `~/.local/share/kde-rice/icons/<name>.svg|png`.
 The Icons page in the hub picks the base, lists the taskbar's applications
 and finds any icon by name; for each, the same name from every installed
@@ -102,8 +103,12 @@ theme, the pictures of another name, or a file of your own. An application
 whose menu entry names a picture file instead of an icon (T3 Code) is given a
 copy of its entry naming an icon of its own, which then can be changed too.
 From a terminal: `kde-rice-theme icons use | base <theme> | set <name> <file>
-| reset <name> | find <name>`. WhiteSur is in the AUR:
-`paru -S whitesur-icon-theme`.
+| reset <name> | find <name>`.
+
+kde-rice-whitesur is WhiteSur, built by kde-rice from WhiteSur's released
+sources with WhiteSur's own installer (with KDE's logo for Apple's) and
+installed with kde-rice: no icon theme package is needed besides. The
+release is pinned, with its checksum, in `icons/CMakeLists.txt`.
 
 ## Login screen
 
@@ -161,7 +166,7 @@ once), starts the launcher and the gaps again in their new build, and says
 when KWin's parts changed and need a new login.
 
 Options: `-DKDERICE_APP=OFF`, `-DKDERICE_THEMES=OFF`, `-DKDERICE_LAUNCHER=OFF`,
-`-DKDERICE_GAPS=OFF`, `-DKDERICE_KWIN_PLUGINS=OFF`,
+`-DKDERICE_ICONS=OFF`, `-DKDERICE_GAPS=OFF`, `-DKDERICE_KWIN_PLUGINS=OFF`,
 `-DKDERICE_DECORATION=OFF`. The decoration fetches Breeze's sources for the
 installed Plasma release from download.kde.org; `-DBREEZE_URL=` points it at
 a local archive instead.

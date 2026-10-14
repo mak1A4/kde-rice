@@ -7,7 +7,8 @@
 // kde-rice's icon theme: ~/.local/share/icons/kde-rice. It holds nothing of
 // its own but the user's own pictures, one per icon name, from
 // ~/.local/share/kde-rice/icons (linked in as its one directory); for every
-// other name it inherits a base theme (WhiteSur by default), in the variant
+// other name it inherits a base theme (kde-rice-whitesur by default, the
+// WhiteSur kde-rice ships, see icons/CMakeLists.txt), in the variant
 // for the kde-rice theme's mode (WhiteSur-dark with a dark theme), and
 // after that Papirus, Breeze and hicolor.
 //

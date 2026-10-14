@@ -85,7 +85,8 @@ QString base()
     if (!chosen.isEmpty() && exists(chosen)) {
         return chosen;
     }
-    for (const auto *fallback : {"WhiteSur", "Papirus", "breeze"}) {
+    // kde-rice's own WhiteSur first
+    for (const auto *fallback : {"kde-rice-whitesur", "WhiteSur", "Papirus", "breeze"}) {
         if (exists(QString::fromLatin1(fallback))) {
             return QString::fromLatin1(fallback);
         }
