@@ -351,9 +351,14 @@ void use()
 // each would run into systemd's limit and leave Plasma stopped.
 static void restartPlasma()
 {
-    QProcess::execute(u"systemd-run"_s,
-                      {u"--user"_s, u"--quiet"_s, u"--on-active=2"_s, u"--unit=kde-rice-plasma-restart"_s, u"--timer-property=AccuracySec=100ms"_s,
-                       u"systemctl"_s, u"--user"_s, u"restart"_s, u"plasma-plasmashell.service"_s});
+    // (a restart already waiting: systemd says so, and that one is it)
+    QProcess process;
+    process.setStandardOutputFile(QProcess::nullDevice());
+    process.setStandardErrorFile(QProcess::nullDevice());
+    process.start(u"systemd-run"_s,
+                  {u"--user"_s, u"--quiet"_s, u"--on-active=2"_s, u"--unit=kde-rice-plasma-restart"_s, u"--timer-property=AccuracySec=100ms"_s,
+                   u"systemctl"_s, u"--user"_s, u"restart"_s, u"plasma-plasmashell.service"_s});
+    process.waitForFinished(5000);
 }
 
 void reload()

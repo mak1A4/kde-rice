@@ -12,5 +12,17 @@
         "process": "outlook-for-linux",
         "icon": "kde-rice-outlook-tray",
         "attentionIcon": "kde-rice-outlook-tray-attention"
+    },
+    {
+        "name": "Claude",
+        "id": "Claude_status_icon_*",
+        "process": "claude-desktop",
+        "icon": "kde-rice-claude-tray"
+    },
+    {
+        "name": "ChatGPT",
+        "id": "chrome_status_icon_*",
+        "process": "ChatGPT",
+        "icon": "kde-rice-chatgpt-tray"
     }
 ]

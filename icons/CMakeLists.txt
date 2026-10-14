@@ -40,6 +40,7 @@ add_custom_command(
     COMMAND $<TARGET_FILE:kde-rice-trim-icons> ${themes}/kde-rice-whitesur/apps ${themes}/kde-rice-whitesur-dark/apps
     DEPENDS ${whitesur_SOURCE_DIR}/install.sh kde-rice-trim-icons ${CMAKE_CURRENT_SOURCE_DIR}/extra/steam_tray_mono.svg
             ${CMAKE_CURRENT_SOURCE_DIR}/tray/outlook.svg ${CMAKE_CURRENT_SOURCE_DIR}/tray/teams.svg
+            ${CMAKE_CURRENT_SOURCE_DIR}/tray/claude.svg ${CMAKE_CURRENT_SOURCE_DIR}/tray/chatgpt.svg
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMENT "Building WhiteSur ${WHITESUR_VERSION} as kde-rice-whitesur"
     VERBATIM
