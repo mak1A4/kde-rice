@@ -1,15 +1,43 @@
---- a/kdecoration/breezedecoration.cpp
-+++ b/kdecoration/breezedecoration.cpp
-@@ -123,6 +123,8 @@
+diff -ruN a/kdecoration/breezedecoration.cpp b/kdecoration/breezedecoration.cpp
+--- a/kdecoration/breezedecoration.cpp	2026-09-08 12:50:45.000000000 +0200
++++ b/kdecoration/breezedecoration.cpp	2026-10-14 15:24:30.459949908 +0200
+@@ -29,11 +29,15 @@
+ #include <QDBusMessage>
+ #include <QDBusPendingCallWatcher>
+ #include <QDBusPendingReply>
++#include <QEvent>
+ #include <QPainter>
+ #include <QPainterPath>
+ #include <QTextStream>
+ #include <QTimer>
+ 
++#include <cstring>
++#include <map>
++
+ K_PLUGIN_FACTORY_WITH_JSON(BreezeDecoFactory, "breeze.json", registerPlugin<Breeze::Decoration>(); registerPlugin<Breeze::Button>();)
+ 
+ namespace
+@@ -123,6 +127,11 @@
  static QColor g_shadowColor = Qt::black;
  static std::shared_ptr<KDecoration3::DecorationShadow> g_sShadow;
  static std::shared_ptr<KDecoration3::DecorationShadow> g_sShadowInactive;
 +// kde-rice: the radius the shadows were cut out with
 +static qreal g_shadowRadius = -1;
++// kde-rice: shadows of windows joined to others, by joined sides (and 16
++// for an active window)
++static std::map<int, std::shared_ptr<KDecoration3::DecorationShadow>> g_joinedShadows;
  
  //________________________________________________________________
  Decoration::Decoration(QObject *parent, const QVariantList &args)
-@@ -243,7 +245,8 @@
+@@ -140,6 +149,7 @@
+     if (g_sDecoCount == 0) {
+         // last deco destroyed, clean up shadow
+         g_sShadow.reset();
++        g_joinedShadows.clear();
+     }
+ }
+ 
+@@ -243,7 +253,8 @@
      connect(window(), &KDecoration3::DecoratedWindow::adjacentScreenEdgesChanged, this, &Decoration::updateTitleBar);
      connect(window(), &KDecoration3::DecoratedWindow::widthChanged, this, &Decoration::updateTitleBar);
      connect(window(), &KDecoration3::DecoratedWindow::maximizedChanged, this, &Decoration::updateTitleBar);
@@ -19,7 +47,96 @@
  
      connect(window(), &KDecoration3::DecoratedWindow::widthChanged, this, &Decoration::updateButtonsGeometry);
      connect(window(), &KDecoration3::DecoratedWindow::maximizedChanged, this, &Decoration::updateButtonsGeometry);
-@@ -443,20 +446,17 @@
+@@ -252,12 +263,88 @@
+ 
+     connect(window(), &KDecoration3::DecoratedWindow::nextScaleChanged, this, &Decoration::updateScale);
+ 
++    // kde-rice: the sides joined to other windows, and when they change
++    if (parent()) {
++        m_joinedEdges = parent()->property("kdeRiceJoinedEdges").toInt();
++        parent()->installEventFilter(this);
++    }
++
+     createButtons();
+     updateShadow();
+     return true;
+ }
+ 
+ //________________________________________________________________
++bool Decoration::eventFilter(QObject *watched, QEvent *event)
++{
++    if (watched == parent() && event->type() == QEvent::DynamicPropertyChange
++        && static_cast<QDynamicPropertyChangeEvent *>(event)->propertyName() == "kdeRiceJoinedEdges") {
++        QMetaObject::invokeMethod(this, &Decoration::updateJoined, Qt::QueuedConnection);
++    }
++    return KDecoration3::Decoration::eventFilter(watched, event);
++}
++
++void Decoration::updateJoined()
++{
++    const int joined = parent() ? parent()->property("kdeRiceJoinedEdges").toInt() : 0;
++    if (joined == m_joinedEdges) {
++        return;
++    }
++    m_joinedEdges = joined;
++    recalculateBorders();
++    updateShadow();
++    update();
++}
++
++// kde-rice: the sides as kwin/plugins/roundcorners gives them
++enum JoinedEdge {
++    JoinedLeft = 1,
++    JoinedTop = 2,
++    JoinedRight = 4,
++    JoinedBottom = 8,
++};
++
++KDecoration3::BorderRadius Decoration::joinedRadius(qreal topLeft, qreal topRight, qreal bottomRight, qreal bottomLeft) const
++{
++    const int joined = m_joinedEdges;
++    return KDecoration3::BorderRadius(joined & (JoinedLeft | JoinedTop) ? 0 : topLeft,
++                                      joined & (JoinedRight | JoinedTop) ? 0 : topRight,
++                                      joined & (JoinedRight | JoinedBottom) ? 0 : bottomRight,
++                                      joined & (JoinedLeft | JoinedBottom) ? 0 : bottomLeft);
++}
++
++// a rectangle with its own radius at each corner, none where joined
++QPainterPath Decoration::joinedRect(const QRectF &rect, qreal topLeft, qreal topRight, qreal bottomRight, qreal bottomLeft) const
++{
++    const KDecoration3::BorderRadius radius = joinedRadius(topLeft, topRight, bottomRight, bottomLeft);
++    const qreal most = std::min(rect.width(), rect.height()) / 2;
++    const qreal tl = std::min(radius.topLeft(), most);
++    const qreal tr = std::min(radius.topRight(), most);
++    const qreal br = std::min(radius.bottomRight(), most);
++    const qreal bl = std::min(radius.bottomLeft(), most);
++    QPainterPath path;
++    path.moveTo(rect.left() + tl, rect.top());
++    path.lineTo(rect.right() - tr, rect.top());
++    if (tr > 0) {
++        path.arcTo(QRectF(rect.right() - 2 * tr, rect.top(), 2 * tr, 2 * tr), 90, -90);
++    }
++    path.lineTo(rect.right(), rect.bottom() - br);
++    if (br > 0) {
++        path.arcTo(QRectF(rect.right() - 2 * br, rect.bottom() - 2 * br, 2 * br, 2 * br), 0, -90);
++    }
++    path.lineTo(rect.left() + bl, rect.bottom());
++    if (bl > 0) {
++        path.arcTo(QRectF(rect.left(), rect.bottom() - 2 * bl, 2 * bl, 2 * bl), 270, -90);
++    }
++    path.lineTo(rect.left(), rect.top() + tl);
++    if (tl > 0) {
++        path.arcTo(QRectF(rect.left(), rect.top(), 2 * tl, 2 * tl), 180, -90);
++    }
++    path.closeSubpath();
++    return path;
++}
++
++//________________________________________________________________
+ void Decoration::updateTitleBar()
+ {
+     // The titlebar rect has margins around it so the window can be resized by dragging a decoration edge.
+@@ -443,20 +530,17 @@
              topLeftRightRadius = m_scaledCornerRadius;
          }
  
@@ -38,7 +155,8 @@
 +            bottomRightRadius = m_scaledCornerRadius;
          }
      }
-     setBorderRadius(KDecoration3::BorderRadius(topLeftRightRadius, topLeftRightRadius, bottomRightRadius, bottomLeftRadius));
+-    setBorderRadius(KDecoration3::BorderRadius(topLeftRightRadius, topLeftRightRadius, bottomRightRadius, bottomLeftRadius));
++    setBorderRadius(joinedRadius(topLeftRightRadius, topLeftRightRadius, bottomRightRadius, bottomLeftRadius));
  
 -    if (isMaximized() || !outlinesEnabled()) {
 +    // kde-rice: the outline also around a maximized window
@@ -46,7 +164,26 @@
          setBorderOutline(KDecoration3::BorderOutline());
      } else {
          const auto color = KColorUtils::mix(window()->color(window()->isActive() ? ColorGroup::Active : ColorGroup::Inactive, ColorRole::Frame),
-@@ -640,7 +640,8 @@
+@@ -475,7 +559,7 @@
+             bottomRightRadius = m_scaledCornerRadius;
+         }
+ 
+-        const auto radius = KDecoration3::BorderRadius(topLeftRightRadius, topLeftRightRadius, bottomRightRadius, bottomLeftRadius);
++        const auto radius = joinedRadius(topLeftRightRadius, topLeftRightRadius, bottomRightRadius, bottomLeftRadius);
+         setBorderOutline(KDecoration3::BorderOutline(thickness, color, radius));
+     }
+ }
+@@ -586,7 +670,8 @@
+             if (hasNoBorders()) {
+                 painter->drawRoundedRect(rect(), 0, 0);
+             } else {
+-                painter->drawRoundedRect(rect(), m_scaledCornerRadius, m_scaledCornerRadius);
++                const qreal r = m_scaledCornerRadius;
++                painter->drawPath(joinedRect(rect(), r, r, r, r));
+             }
+         } else {
+             painter->drawRect(rect());
+@@ -640,26 +725,27 @@
          painter->setBrush(titleBarColor());
      }
  
@@ -56,7 +193,119 @@
          painter->setBrush(backBrush);
          painter->drawRect(rect);
  
-@@ -854,7 +855,17 @@
+         painter->setBrush(frontBrush);
+         painter->drawRect(rect);
+     } else if (window()->isShaded()) {
++        const qreal r = m_scaledCornerRadius;
+         painter->setBrush(backBrush);
+-        painter->drawRoundedRect(rect, m_scaledCornerRadius, m_scaledCornerRadius);
++        painter->drawPath(joinedRect(rect, r, r, r, r));
+ 
+         painter->setBrush(frontBrush);
+-        painter->drawRoundedRect(rect, m_scaledCornerRadius, m_scaledCornerRadius);
++        painter->drawPath(joinedRect(rect, r, r, r, r));
+ 
+     } else {
+         painter->setClipRect(rect, Qt::IntersectClip);
+ 
++        // kde-rice: corners on the top only, and none where joined
+         auto drawThe = [this, painter](const QRectF &r) {
+-            painter->drawRoundedRect(r, m_scaledCornerRadius, m_scaledCornerRadius);
+-            // remove the rounding on the bottom
+-            painter->drawRect(QRectF(r.bottomLeft() - QPointF(0, m_scaledCornerRadius), r.bottomRight()));
++            painter->drawPath(joinedRect(r, m_scaledCornerRadius, m_scaledCornerRadius, 0, 0));
+         };
+ 
+         painter->setBrush(backBrush);
+@@ -768,19 +854,31 @@
+ 
+     // Animated case, no cached shadow object
+     if ((m_shadowAnimation->state() == QAbstractAnimation::Running) && (m_shadowOpacity != 0.0) && (m_shadowOpacity != 1.0)) {
+-        setShadow(createShadowObject(0.5 + m_shadowOpacity * 0.5));
++        setShadow(createShadowObject(0.5 + m_shadowOpacity * 0.5, m_joinedEdges));
+         return;
+     }
+ 
+     if (g_shadowSizeEnum != m_internalSettings->shadowSize() || g_shadowStrength != m_internalSettings->shadowStrength()
+         || g_shadowColor != m_internalSettings->shadowColor()) {
+         g_sShadow.reset();
++        g_joinedShadows.clear();
+         g_sShadowInactive.reset();
+         g_shadowSizeEnum = m_internalSettings->shadowSize();
+         g_shadowStrength = m_internalSettings->shadowStrength();
+         g_shadowColor = m_internalSettings->shadowColor();
+     }
+ 
++    // kde-rice: one of its own for a window joined to others
++    if (m_joinedEdges != 0) {
++        const bool active = window()->isActive();
++        auto &joined = g_joinedShadows[m_joinedEdges | (active ? 16 : 0)];
++        if (!joined) {
++            joined = createShadowObject(active ? 1.0 : 0.5, m_joinedEdges);
++        }
++        setShadow(joined);
++        return;
++    }
++
+     auto &shadow = (window()->isActive()) ? g_sShadow : g_sShadowInactive;
+     if (!shadow) {
+         g_sShadow = createShadowObject(1.0);
+@@ -790,7 +888,7 @@
+ }
+ 
+ //________________________________________________________________
+-std::shared_ptr<KDecoration3::DecorationShadow> Decoration::createShadowObject(const float strengthScale)
++std::shared_ptr<KDecoration3::DecorationShadow> Decoration::createShadowObject(const float strengthScale, int joined)
+ {
+     CompositeShadowParams params = lookupShadowParams(m_internalSettings->shadowSize());
+     if (params.isNone()) {
+@@ -842,8 +940,44 @@
+ 
+     painter.end();
+ 
++    // kde-rice: no shadow on a side joined to another window. The edges
++    // along it run straight to the end of the picture there (each row or
++    // column the middle one), so the shadows of two windows side by side
++    // meet as one; and the side itself, the middle of the picture, is the
++    // part masked out. KWin draws the corners as large as the picture has
++    // them, so they are also straight now.
++    QMarginsF shown = padding;
++    if (joined) {
++        shadowTexture = shadowTexture.convertToFormat(QImage::Format_ARGB32_Premultiplied);
++        const int width = shadowTexture.width();
++        const int height = shadowTexture.height();
++        const int middleX = width / 2;
++        const int middleY = height / 2;
++        for (int y = 0; y < height; ++y) {
++            auto *line = reinterpret_cast<QRgb *>(shadowTexture.scanLine(y));
++            const QRgb middle = line[middleX];
++            if (joined & JoinedLeft) {
++                std::fill(line, line + middleX, middle);
++            }
++            if (joined & JoinedRight) {
++                std::fill(line + middleX + 1, line + width, middle);
++            }
++        }
++        const auto *middleLine = shadowTexture.constScanLine(middleY);
++        const qsizetype bytes = shadowTexture.bytesPerLine();
++        for (int y = 0; y < height; ++y) {
++            if (((joined & JoinedTop) && y < middleY) || ((joined & JoinedBottom) && y > middleY)) {
++                std::memcpy(shadowTexture.scanLine(y), middleLine, bytes);
++            }
++        }
++        shown = QMarginsF(joined & JoinedLeft ? 0 : padding.left(),
++                          joined & JoinedTop ? 0 : padding.top(),
++                          joined & JoinedRight ? 0 : padding.right(),
++                          joined & JoinedBottom ? 0 : padding.bottom());
++    }
++
+     auto ret = std::make_shared<KDecoration3::DecorationShadow>();
+-    ret->setPadding(padding);
++    ret->setPadding(shown);
+     ret->setInnerShadowRect(QRectF(outerRect.center(), QSizeF(1, 1)));
+     ret->setShadow(shadowTexture);
+     return ret;
+@@ -854,7 +988,18 @@
      // On X11, the smallSpacing value is used for scaling.
      // On Wayland, this value has constant factor of 2.
      // Removing it will break radius scaling on X11.
@@ -69,15 +318,45 @@
 +    if (g_shadowRadius != radius) {
 +        g_shadowRadius = radius;
 +        g_sShadow.reset();
++        g_joinedShadows.clear();
 +        g_sShadowInactive.reset();
 +    }
 +    m_scaledCornerRadius = KDecoration3::snapToPixelGrid(radius, window()->nextScale());
  }
  
  void Decoration::updateScale()
---- a/kdecoration/breezedecoration.h
-+++ b/kdecoration/breezedecoration.h
-@@ -200,6 +200,12 @@
+diff -ruN a/kdecoration/breezedecoration.h b/kdecoration/breezedecoration.h
+--- a/kdecoration/breezedecoration.h	2026-09-08 12:50:45.000000000 +0200
++++ b/kdecoration/breezedecoration.h	2026-10-14 15:24:10.528472059 +0200
+@@ -16,6 +16,7 @@
+ 
+ #include <QPalette>
+ #include <QVariant>
++#include <QPainterPath>
+ #include <QVariantAnimation>
+ 
+ namespace KDecoration3
+@@ -103,9 +104,18 @@
+     void createButtons();
+     void paintTitleBar(QPainter *painter, const QRectF &repaintRegion);
+     void updateShadow();
+-    std::shared_ptr<KDecoration3::DecorationShadow> createShadowObject(const float strengthScale);
++    std::shared_ptr<KDecoration3::DecorationShadow> createShadowObject(const float strengthScale, int joined = 0);
+     void setScaledCornerRadius();
+ 
++    // kde-rice: the sides on which the window is tiled together with
++    // another (kwin/plugins/roundcorners says which, on the window, which is
++    // the decoration's parent): no corners and no shadow there
++    bool eventFilter(QObject *watched, QEvent *event) override;
++    void updateJoined();
++    KDecoration3::BorderRadius joinedRadius(qreal topLeft, qreal topRight, qreal bottomRight, qreal bottomLeft) const;
++    QPainterPath joinedRect(const QRectF &rect, qreal topLeft, qreal topRight, qreal bottomRight, qreal bottomLeft) const;
++    int m_joinedEdges = 0;
++
+     //*@name border size
+     //@{
+     qreal borderSize(bool bottom, qreal scale) const;
+@@ -200,6 +210,12 @@
  
  bool Decoration::hideTitleBar() const
  {

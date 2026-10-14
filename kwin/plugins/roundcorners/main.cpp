@@ -10,6 +10,13 @@
 // title bar instead: the corners, and Breeze's shadow and outline in place of
 // the window's own shadow, which the corners would cut off.
 //
+// Windows tiled together have no corners where they meet, and no shadow
+// there either, so that they look like one: this works out which sides of
+// a tiled window lie against another tiled window (same screen, same
+// desktop, edge on edge) and squares those corners. kde-rice's Breeze reads
+// the same sides from the window (`kdeRiceJoinedEdges`) for its title bar,
+// outline and shadow.
+//
 // The radius is `Radius` in the group `KDERiceRoundCorners` of kwinrc
 // (logical pixels, 0 for none), read again when KWin is told to reconfigure.
 // Not there, it is Breeze's own, 5. kde-rice's Breeze (kwin/decoration/breeze) reads
@@ -29,12 +36,21 @@
 #include <QPointer>
 #include <QTimer>
 
+#include <cmath>
 #include <optional>
 
 using namespace KWin;
 
 // read by kde-rice's Breeze, on the window its decoration belongs to
 static const char s_noTitleBar[] = "kdeRiceNoTitleBar";
+// the sides joined to another window, as kde-rice's Breeze reads them
+static const char s_joined[] = "kdeRiceJoinedEdges";
+enum JoinedEdge {
+    JoinedLeft = 1,
+    JoinedTop = 2,
+    JoinedRight = 4,
+    JoinedBottom = 8,
+};
 static const QString s_ownDecoration = QStringLiteral("io.github.mak1a4.kde-rice.breeze");
 
 class RoundCorners : public Plugin
@@ -50,6 +66,13 @@ public:
             applyAll();
         });
         connect(workspace(), &Workspace::windowAdded, this, &RoundCorners::track);
+        // which windows are joined is looked at once the moves are done
+        m_join.setSingleShot(true);
+        m_join.setInterval(0);
+        connect(&m_join, &QTimer::timeout, this, &RoundCorners::joinAll);
+        connect(workspace(), &Workspace::windowRemoved, &m_join, qOverload<>(&QTimer::start));
+        connect(workspace(), &Workspace::currentDesktopChanged, &m_join, qOverload<>(&QTimer::start));
+        connect(workspace(), &Workspace::currentActivityChanged, &m_join, qOverload<>(&QTimer::start));
         const auto windows = workspace()->windows();
         for (Window *window : windows) {
             track(window);
@@ -63,6 +86,7 @@ public:
             if (wanted(window)) {
                 disconnect(window, nullptr, this, nullptr);
                 setFramed(window, false);
+                window->setProperty(s_joined, QVariant());
                 window->setBorderRadius(own(window));
             }
         }
@@ -172,7 +196,65 @@ private:
         if (!given.isNull() || window->isFullScreen() || drawsOutsideFrame(window)) {
             return given;
         }
-        return BorderRadius(m_radius);
+        // none where the window is joined to another
+        const int joined = window->property(s_joined).toInt();
+        const auto corner = [this, joined](int one, int other) {
+            return joined & (one | other) ? 0.0 : m_radius;
+        };
+        return BorderRadius(corner(JoinedLeft, JoinedTop), corner(JoinedRight, JoinedTop), corner(JoinedRight, JoinedBottom), corner(JoinedLeft, JoinedBottom));
+    }
+
+    // tiled (quick tiling or a tile of KWin's layout) and to be seen now
+    static bool joinable(const Window *window)
+    {
+        return wanted(window) && !window->isMinimized() && !window->isFullScreen() && window->isOnCurrentDesktop() && window->isOnCurrentActivity()
+            && (window->quickTileMode() != QuickTileMode(QuickTileFlag::None) || window->tile());
+    }
+
+    // The sides on which tiled windows lie against each other, edge on
+    // edge (within a pixel) and along more than a pixel, on every window.
+    void joinAll()
+    {
+        const auto windows = workspace()->windows();
+        QList<Window *> tiled;
+        for (Window *window : windows) {
+            if (joinable(window)) {
+                tiled += window;
+            }
+        }
+        const auto near = [](qreal a, qreal b) {
+            return std::abs(a - b) <= 1;
+        };
+        const auto along = [](qreal from, qreal to, qreal otherFrom, qreal otherTo) {
+            return std::min(to, otherTo) - std::max(from, otherFrom) > 1;
+        };
+        for (Window *window : windows) {
+            if (!wanted(window)) {
+                continue;
+            }
+            int joined = 0;
+            if (tiled.contains(window)) {
+                const RectF g = window->frameGeometry();
+                for (const Window *other : std::as_const(tiled)) {
+                    if (other == window || other->output() != window->output()) {
+                        continue;
+                    }
+                    const RectF o = other->frameGeometry();
+                    if (along(g.top(), g.bottom(), o.top(), o.bottom())) {
+                        joined |= near(g.right(), o.left()) ? JoinedRight : 0;
+                        joined |= near(g.left(), o.right()) ? JoinedLeft : 0;
+                    }
+                    if (along(g.left(), g.right(), o.left(), o.right())) {
+                        joined |= near(g.bottom(), o.top()) ? JoinedBottom : 0;
+                        joined |= near(g.top(), o.bottom()) ? JoinedTop : 0;
+                    }
+                }
+            }
+            if (window->property(s_joined).toInt() != joined) {
+                window->setProperty(s_joined, joined);
+                apply(window);
+            }
+        }
     }
 
     void readConfig()
@@ -194,6 +276,17 @@ private:
         connect(window, &Window::fullScreenChanged, this, update);
         connect(window, &Window::frameGeometryChanged, this, update);
         connect(window, &Window::bufferGeometryChanged, this, update);
+        // and which windows are joined, looked at again
+        const auto join = [this] {
+            m_join.start();
+        };
+        connect(window, &Window::frameGeometryChanged, this, join);
+        connect(window, &Window::minimizedChanged, this, join);
+        connect(window, &Window::desktopsChanged, this, join);
+        connect(window, &Window::quickTileModeChanged, this, join);
+        connect(window, &Window::fullScreenChanged, this, join);
+        connect(window, &Window::tileChanged, this, join);
+        m_join.start();
         if (const SurfaceInterface *surface = window->surface()) {
             connect(surface, &SurfaceInterface::opaqueChanged, this, update);
         }
@@ -230,6 +323,7 @@ private:
 
     qreal m_radius = 5;
     bool m_ownDecoration = false;
+    QTimer m_join;
 };
 
 class RoundCornersFactory : public PluginFactory

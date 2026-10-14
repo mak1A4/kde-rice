@@ -20,8 +20,14 @@ if(NOT breeze_url)
     set(breeze_url "https://download.kde.org/stable/plasma/${KWin_VERSION}/breeze-${KWin_VERSION}.tar.xz")
 endif()
 
+# A changed patch is a new source directory: FetchContent patches only what
+# it has just unpacked.
+file(MD5 "${CMAKE_CURRENT_SOURCE_DIR}/rounded.patch" patch_hash)
+string(SUBSTRING "${patch_hash}" 0 12 patch_hash)
+
 include(FetchContent)
 FetchContent_Declare(breeze
+    SOURCE_DIR "${FETCHCONTENT_BASE_DIR}/breeze-src-${patch_hash}"
     URL "${breeze_url}"
     DOWNLOAD_EXTRACT_TIMESTAMP TRUE
     PATCH_COMMAND patch -p1 -N -i "${CMAKE_CURRENT_SOURCE_DIR}/rounded.patch"
