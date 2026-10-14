@@ -20,8 +20,8 @@
 //                 files in ~/.local/state/kde-rice/theme, which the user's
 //                 own configurations include
 //   btop          ~/.config/btop/themes/kde-rice.theme
-//   Teams, Outlook (the Electron ones for Linux) a one-colour tray icon,
-//                 black or white with the mode, in their config.json
+//   Teams, Outlook (the Electron ones for Linux) a tray glyph of kde-rice's,
+//                 in the mode's colour, named in their config.json
 //   VS Code       its built-in theme coloured with the theme's colours
 //                 (settings.json), no extension needed
 //   background    the theme's picture or video on the desktop and the lock

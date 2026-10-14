@@ -144,6 +144,30 @@ std::optional<QByteArray> trimmed(const QByteArray &svg)
     return text.toUtf8();
 }
 
+bool render(const QByteArray &svg, int size, const QString &path)
+{
+    GError *error = nullptr;
+    std::unique_ptr<RsvgHandle, void (*)(gpointer)> handle(
+        rsvg_handle_new_from_data(reinterpret_cast<const guint8 *>(svg.constData()), gsize(svg.size()), &error), g_object_unref);
+    if (!handle) {
+        g_clear_error(&error);
+        return false;
+    }
+    std::unique_ptr<cairo_surface_t, void (*)(cairo_surface_t *)> surface(cairo_image_surface_create(CAIRO_FORMAT_ARGB32, size, size),
+                                                                         cairo_surface_destroy);
+    std::unique_ptr<cairo_t, void (*)(cairo_t *)> cr(cairo_create(surface.get()), cairo_destroy);
+    const RsvgRectangle viewport{0, 0, double(size), double(size)};
+    if (!rsvg_handle_render_document(handle.get(), cr.get(), &viewport, &error)) {
+        g_clear_error(&error);
+        return false;
+    }
+    cairo_surface_flush(surface.get());
+    // cairo's premultiplied ARGB is Qt's, row by row
+    const QImage image(cairo_image_surface_get_data(surface.get()), size, size, cairo_image_surface_get_stride(surface.get()),
+                       QImage::Format_ARGB32_Premultiplied);
+    return image.copy().save(path, "PNG");
+}
+
 // A PNG app icon trimmed by the same rule, its tile filling 93 % of a
 // square, at no more than 512 pixels.
 static bool trimPng(const QString &path)

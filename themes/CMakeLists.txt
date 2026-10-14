@@ -21,6 +21,7 @@ target_link_libraries(kderice_themes PUBLIC Qt6::Core Qt6::Gui PRIVATE Qt6::DBus
 target_compile_definitions(kderice_themes PRIVATE
     KDERICE_SOURCE_THEMES="${CMAKE_CURRENT_SOURCE_DIR}/data"
     KDERICE_SOURCE_TEMPLATES="${CMAKE_CURRENT_SOURCE_DIR}/templates"
+    KDERICE_SOURCE_TRAY="${CMAKE_SOURCE_DIR}/icons/tray"
 )
 set_target_properties(kderice_themes PROPERTIES POSITION_INDEPENDENT_CODE ON)
 

@@ -1,6 +1,7 @@
 #include "applier.h"
 #include "colour.h"
 #include "icons.h"
+#include "trim.h"
 
 #include <KConfigGroup>
 #include <KSharedConfig>
@@ -404,21 +405,45 @@ static void applyVsCode(Context &context)
 }
 
 // Teams for Linux and Outlook for Linux (Electron) hand the tray a picture of
-// their own, which no icon theme reaches; both have a one-colour picture,
-// black or white, chosen in their config.json: black on a light theme. Read
-// when they start.
+// their own, which no icon theme reaches. Both take a picture file for it in
+// their config.json: kde-rice's glyph for each (icons/tray), drawn in the
+// colour of WhiteSur's tray icons for the mode. Read when they start.
+static QString trayDir()
+{
+    QString dir = QStandardPaths::locate(QStandardPaths::GenericDataLocation, u"kde-rice/tray"_s, QStandardPaths::LocateDirectory);
+#ifdef KDERICE_SOURCE_TRAY
+    if (dir.isEmpty()) {
+        dir = QStringLiteral(KDERICE_SOURCE_TRAY);
+    }
+#endif
+    return dir;
+}
+
 static void applyElectronTrays(Context &context)
 {
     const bool dark = context.values[u"mode"_s] == "dark"_L1;
-    const QString type = dark ? u"light"_s : u"dark"_s;
-    // the application, and where its setting is (Teams has a newer name for it)
-    const QList<std::pair<QString, QStringList>> apps = {
-        {u"teams-for-linux"_s, {u"tray"_s, u"iconType"_s}},
-        {u"outlook-for-linux"_s, {u"appIconType"_s}},
+    // WhiteSur's tray icons: #363636 on light, #f2f2f2 on dark
+    const QByteArray colour = dark ? "#f2f2f2" : "#363636";
+    // the application, its glyph, and where the picture is named (Teams has
+    // a newer name for it)
+    struct App {
+        QString name;
+        QString glyph;
+        QStringList key;
     };
-    for (const auto &[app, key] : apps) {
-        const QString dir = configHome() + u'/' + app;
+    const QList<App> apps = {
+        {u"teams-for-linux"_s, u"teams"_s, {u"tray"_s, u"icon"_s}},
+        {u"outlook-for-linux"_s, u"outlook"_s, {u"appIcon"_s}},
+    };
+    for (const App &app : apps) {
+        const QString dir = configHome() + u'/' + app.name;
         if (!QFileInfo(dir).isDir()) {
+            continue;
+        }
+        QFile glyph(trayDir() + u'/' + app.glyph + ".svg"_L1);
+        const QString picture = outputDir() + "/tray-"_L1 + app.glyph + ".png"_L1;
+        if (!glyph.open(QIODevice::ReadOnly) || !IconTrim::render(glyph.readAll().replace("#363636", colour), 96, picture)) {
+            context.problems += u"the tray glyph for %1 could not be drawn"_s.arg(app.name);
             continue;
         }
         const QString path = dir + "/config.json"_L1;
@@ -434,12 +459,12 @@ static void applyElectronTrays(Context &context)
             config = document.object();
             file.close();
         }
-        if (key.size() == 2) {
-            QJsonObject inner = config.value(key[0]).toObject();
-            inner.insert(key[1], type);
-            config.insert(key[0], inner);
+        if (app.key.size() == 2) {
+            QJsonObject inner = config.value(app.key[0]).toObject();
+            inner.insert(app.key[1], picture);
+            config.insert(app.key[0], inner);
         } else {
-            config.insert(key[0], type);
+            config.insert(app.key[0], picture);
         }
         write(path, QJsonDocument(config).toJson());
     }

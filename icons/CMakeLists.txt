@@ -44,3 +44,7 @@ add_custom_command(
 add_custom_target(kderice_whitesur ALL DEPENDS ${themes}/kde-rice-whitesur/index.theme)
 
 install(DIRECTORY ${themes}/ DESTINATION ${KDE_INSTALL_ICONDIR} USE_SOURCE_PERMISSIONS)
+
+# kde-rice's tray glyphs for applications that hand the tray a picture of
+# their own (themes/src/applier.cpp draws them in the mode's colour)
+install(DIRECTORY tray/ DESTINATION ${KDE_INSTALL_DATADIR}/kde-rice/tray)
