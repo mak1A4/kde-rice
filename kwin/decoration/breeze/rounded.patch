@@ -1,0 +1,92 @@
+--- a/kdecoration/breezedecoration.cpp
++++ b/kdecoration/breezedecoration.cpp
+@@ -123,6 +123,8 @@
+ static QColor g_shadowColor = Qt::black;
+ static std::shared_ptr<KDecoration3::DecorationShadow> g_sShadow;
+ static std::shared_ptr<KDecoration3::DecorationShadow> g_sShadowInactive;
++// kde-rice: the radius the shadows were cut out with
++static qreal g_shadowRadius = -1;
+ 
+ //________________________________________________________________
+ Decoration::Decoration(QObject *parent, const QVariantList &args)
+@@ -243,7 +245,8 @@
+     connect(window(), &KDecoration3::DecoratedWindow::adjacentScreenEdgesChanged, this, &Decoration::updateTitleBar);
+     connect(window(), &KDecoration3::DecoratedWindow::widthChanged, this, &Decoration::updateTitleBar);
+     connect(window(), &KDecoration3::DecoratedWindow::maximizedChanged, this, &Decoration::updateTitleBar);
+-    connect(window(), &KDecoration3::DecoratedWindow::maximizedChanged, this, &Decoration::setOpaque);
++    // kde-rice: a maximized window's title bar has corners, so it is
++    // not opaque (KWin would leave what is behind the corners unpainted)
+ 
+     connect(window(), &KDecoration3::DecoratedWindow::widthChanged, this, &Decoration::updateButtonsGeometry);
+     connect(window(), &KDecoration3::DecoratedWindow::maximizedChanged, this, &Decoration::updateButtonsGeometry);
+@@ -443,20 +446,17 @@
+             topLeftRightRadius = m_scaledCornerRadius;
+         }
+ 
++        // kde-rice: windows are kept away from the screen's edges,
++        // so a maximized or tiled window has its corners like any other
+         if (hasNoBorders()) {
+-            if (!isBottomEdge()) {
+-                if (!isLeftEdge()) {
+-                    bottomLeftRadius = m_scaledCornerRadius;
+-                }
+-                if (!isRightEdge()) {
+-                    bottomRightRadius = m_scaledCornerRadius;
+-                }
+-            }
++            bottomLeftRadius = m_scaledCornerRadius;
++            bottomRightRadius = m_scaledCornerRadius;
+         }
+     }
+     setBorderRadius(KDecoration3::BorderRadius(topLeftRightRadius, topLeftRightRadius, bottomRightRadius, bottomLeftRadius));
+ 
+-    if (isMaximized() || !outlinesEnabled()) {
++    // kde-rice: the outline also around a maximized window
++    if (!outlinesEnabled()) {
+         setBorderOutline(KDecoration3::BorderOutline());
+     } else {
+         const auto color = KColorUtils::mix(window()->color(window()->isActive() ? ColorGroup::Active : ColorGroup::Inactive, ColorRole::Frame),
+@@ -640,7 +640,8 @@
+         painter->setBrush(titleBarColor());
+     }
+ 
+-    if (isMaximized() || !settings()->isAlphaChannelSupported()) {
++    // kde-rice: rounded also when maximized
++    if (!settings()->isAlphaChannelSupported()) {
+         painter->setBrush(backBrush);
+         painter->drawRect(rect);
+ 
+@@ -854,7 +855,17 @@
+     // On X11, the smallSpacing value is used for scaling.
+     // On Wayland, this value has constant factor of 2.
+     // Removing it will break radius scaling on X11.
+-    m_scaledCornerRadius = KDecoration3::snapToPixelGrid(Metrics::Frame_FrameRadius * settings()->smallSpacing(), window()->nextScale());
++    qreal radius = Metrics::Frame_FrameRadius * settings()->smallSpacing();
++    // kde-rice: one radius for all windows, the one kwin/plugins/roundcorners
++    // gives the windows that have no decoration
++    const KConfigGroup shell(KSharedConfig::openConfig(QStringLiteral("kwinrc")), QStringLiteral("KDERiceRoundCorners"));
++    radius = std::max(0.0, shell.readEntry("Radius", radius));
++    if (g_shadowRadius != radius) {
++        g_shadowRadius = radius;
++        g_sShadow.reset();
++        g_sShadowInactive.reset();
++    }
++    m_scaledCornerRadius = KDecoration3::snapToPixelGrid(radius, window()->nextScale());
+ }
+ 
+ void Decoration::updateScale()
+--- a/kdecoration/breezedecoration.h
++++ b/kdecoration/breezedecoration.h
+@@ -200,6 +200,12 @@
+ 
+ bool Decoration::hideTitleBar() const
+ {
++    // kde-rice: a window that draws its own title bar and was given
++    // this decoration for its corners, shadow and outline (kwin/plugins/roundcorners
++    // says which, on the window, which is the decoration's parent)
++    if (parent() && parent()->property("kdeRiceNoTitleBar").toBool()) {
++        return true;
++    }
+     return m_internalSettings->hideTitleBar() && !window()->isShaded();
+ }
+ 

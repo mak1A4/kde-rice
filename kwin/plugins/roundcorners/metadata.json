@@ -1,0 +1,7 @@
+{
+    "KPlugin": {
+        "Description": "Rounded corners on every application window, maximized ones too",
+        "EnabledByDefault": false,
+        "Name": "Rounded corners (kde-rice)"
+    }
+}

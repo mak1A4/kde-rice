@@ -1,0 +1,36 @@
+# Builds and installs kde-rice from this checkout:
+#
+#   cd packaging && makepkg -si
+#
+# The KWin plugins and the decoration are built against the KWin installed
+# now: run it again after each Plasma update.
+pkgname=kde-rice-git
+pkgver=0
+pkgrel=1
+pkgdesc="One place to customize KDE Plasma: a hub application and the KWin and Plasma parts it switches on"
+arch=(x86_64)
+url="https://github.com/mak1A4/kde-rice"
+license=(GPL-3.0-or-later)
+depends=(kwin kdecoration kconfig kcoreaddons ki18n kcolorscheme kguiaddons kiconthemes
+         kirigami kirigami-addons qqc2-desktop-style qt6-base qt6-declarative)
+makedepends=(cmake extra-cmake-modules ninja git patch)
+provides=(kde-rice)
+conflicts=(kde-rice)
+
+_repo=$(realpath "$startdir/..")
+
+pkgver() {
+    printf "r%s.%s" "$(git -C "$_repo" rev-list --count HEAD)" "$(git -C "$_repo" rev-parse --short HEAD)"
+}
+
+build() {
+    cmake -S "$_repo" -B build -G Ninja \
+        -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+        -DCMAKE_INSTALL_PREFIX=/usr \
+        -DBUILD_TESTING=OFF
+    cmake --build build
+}
+
+package() {
+    DESTDIR="$pkgdir" cmake --install build
+}

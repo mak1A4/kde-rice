@@ -1,0 +1,12 @@
+{
+    "KPlugin": {
+        "Description": "Breeze with the corners kept on maximized and tiled windows, for kde-rice",
+        "EnabledByDefault": true,
+        "Name": "Breeze (kde-rice)"
+    },
+    "X-KDE-ConfigModule": "kcm_breezedecoration",
+    "org.kde.kdecoration3": {
+        "blur": false,
+        "recommendedBorderSize": "None"
+    }
+}

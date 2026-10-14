@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=kde-rice
+GenericName=Desktop Customization
+Comment=One place for everything kde-rice changes in Plasma and KWin
+Exec=kde-rice
+Icon=preferences-desktop-theme-global
+Categories=Qt;KDE;Settings;DesktopSettings;
