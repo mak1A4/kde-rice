@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
     KAboutData::setApplicationData(about);
     QCommandLineParser parser;
     about.setupCommandLine(&parser);
-    parser.addOption({QStringLiteral("page"), i18n("The page to open: appearance, windows, panels or effects."), QStringLiteral("page")});
+    parser.addOption({QStringLiteral("page"), i18n("The page to open: appearance, icons, windows, panels or effects."), QStringLiteral("page")});
     parser.addOption({QStringLiteral("panel-opacity"), i18n("Set the panels' opacity (percent) and quit."), QStringLiteral("percent")});
     parser.process(app);
     about.processCommandLine(&parser);

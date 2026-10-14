@@ -9,10 +9,16 @@
 //   kde-rice-theme apply                    apply the chosen theme again
 //   kde-rice-theme backgrounds [<theme>]    a theme's backgrounds
 //   kde-rice-theme values [<theme>]         what the templates are filled in with
+//   kde-rice-theme icons use                kde-rice's icon theme in use
+//   kde-rice-theme icons base [<theme>]     its base theme (shown, or set)
+//   kde-rice-theme icons set <name> <file>  your own picture for an icon name
+//   kde-rice-theme icons reset <name>       the base theme's again
+//   kde-rice-theme icons find <name>        that icon in every installed theme
 //
 // KDERICE_FILES_ONLY=1 writes the files and tells no program (for trying it out).
 
 #include "applier.h"
+#include "icons.h"
 #include "theme.h"
 
 #include <QCoreApplication>
@@ -111,6 +117,50 @@ int main(int argc, char *argv[])
             out << path << "\n";
         }
         return 0;
+    }
+    if (command == "icons"_L1 && !arguments.isEmpty()) {
+        const QString what = arguments.takeFirst();
+        const auto theme = ThemeStore::load(choice.theme);
+        const QString mode = theme && !theme->isDark() ? u"light"_s : u"dark"_s;
+        if (what == "use"_L1) {
+            IconStore::write(mode);
+            IconStore::use();
+            return 0;
+        }
+        if (what == "base"_L1) {
+            if (!arguments.isEmpty()) {
+                IconStore::setBase(arguments.first());
+                if (IconStore::write(mode) && IconStore::inUse()) {
+                    IconStore::reload();
+                }
+            }
+            out << IconStore::base() << "\t" << IconStore::baseFor(mode) << "\n";
+            return 0;
+        }
+        if (what == "set"_L1 && arguments.size() == 2) {
+            if (!IconStore::setOverride(arguments[0], arguments[1])) {
+                err << "cannot use " << arguments[1] << " for " << arguments[0] << " (an SVG or PNG file is needed)\n";
+                return 1;
+            }
+            IconStore::reload();
+            return 0;
+        }
+        if (what == "reset"_L1 && arguments.size() == 1) {
+            IconStore::removeOverride(arguments[0]);
+            IconStore::reload();
+            return 0;
+        }
+        if (what == "find"_L1 && arguments.size() == 1) {
+            const auto themes = IconStore::installed();
+            for (const auto &installed : themes) {
+                const QString path = IconStore::file(installed.id, arguments[0]);
+                if (!path.isEmpty()) {
+                    out << installed.id << "\t" << path << "\n";
+                }
+            }
+            return 0;
+        }
+        return usage();
     }
     if (command == "values"_L1) {
         const auto theme = ThemeStore::load(arguments.value(0, choice.theme));

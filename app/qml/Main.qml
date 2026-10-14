@@ -22,6 +22,12 @@ Kirigami.ApplicationWindow {
             onTriggered: root.show(appearance)
         },
         Kirigami.Action {
+            text: i18n("Icons")
+            icon.name: "preferences-desktop-icons"
+            checkable: true
+            onTriggered: root.show(iconsPage)
+        },
+        Kirigami.Action {
             text: i18n("Windows")
             icon.name: "preferences-system-windows"
             checkable: true
@@ -58,13 +64,14 @@ Kirigami.ApplicationWindow {
     }
 
     Component { id: appearance; AppearancePage {} }
+    Component { id: iconsPage; IconsPage {} }
     Component { id: windows; WindowsPage {} }
     Component { id: panels; PanelsPage {} }
     Component { id: effects; EffectsPage {} }
 
     // --page on the command line, else Appearance
     Component.onCompleted: {
-        const pages = ["appearance", "windows", "panels", "effects"];
+        const pages = ["appearance", "icons", "windows", "panels", "effects"];
         sections[Math.max(0, pages.indexOf(initialPage))].trigger();
     }
 }

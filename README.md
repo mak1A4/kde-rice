@@ -90,6 +90,21 @@ the panel and Plasma keeps it floating (it un-floats a panel whose window a
 window overlaps). Switched on, with the gap's size, on the hub's Windows page
 (`[Gaps] Enabled`, `Size` in `kde-ricerc`); it runs at login when on.
 
+## Icons
+
+kde-rice has an icon theme of its own, `kde-rice` in `~/.local/share/icons`:
+a base theme (WhiteSur by default, in its light or dark variant with the
+kde-rice theme; then Papirus, Breeze, hicolor) with your own picture for any
+icon name on top, kept in `~/.local/share/kde-rice/icons/<name>.svg|png`.
+The Icons page in the hub picks the base, lists the taskbar's applications
+and finds any icon by name; for each, the same name from every installed
+theme, the pictures of another name, or a file of your own. An application
+whose menu entry names a picture file instead of an icon (T3 Code) is given a
+copy of its entry naming an icon of its own, which then can be changed too.
+From a terminal: `kde-rice-theme icons use | base <theme> | set <name> <file>
+| reset <name> | find <name>`. WhiteSur is in the AUR:
+`paru -S whitesur-icon-theme`.
+
 ## Login screen
 
 Plasma Login Manager runs as a user of its own and reads nothing in a home

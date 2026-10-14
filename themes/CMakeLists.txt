@@ -3,15 +3,16 @@
 # background (wallpaper/), and the code that applies them (src/), which the
 # hub, the launcher and kde-rice-theme share.
 find_package(Qt6 REQUIRED COMPONENTS Core Gui DBus)
-find_package(KF6 ${KF_MIN_VERSION} REQUIRED COMPONENTS Config)
+find_package(KF6 ${KF_MIN_VERSION} REQUIRED COMPONENTS Config CoreAddons IconThemes)
 
 add_library(kderice_themes STATIC
     src/applier.cpp src/applier.h
     src/colour.cpp src/colour.h
+    src/icons.cpp src/icons.h
     src/theme.cpp src/theme.h
 )
 target_include_directories(kderice_themes PUBLIC src)
-target_link_libraries(kderice_themes PUBLIC Qt6::Core Qt6::Gui PRIVATE Qt6::DBus KF6::ConfigCore)
+target_link_libraries(kderice_themes PUBLIC Qt6::Core Qt6::Gui PRIVATE Qt6::DBus KF6::ConfigCore KF6::CoreAddons KF6::IconThemes)
 # found when nothing is installed, for running from the build directory
 target_compile_definitions(kderice_themes PRIVATE
     KDERICE_SOURCE_THEMES="${CMAKE_CURRENT_SOURCE_DIR}/data"

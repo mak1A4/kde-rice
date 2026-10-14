@@ -73,7 +73,14 @@ for file in $synced; do
     fi
 done
 
+# kde-rice's icon theme is in the user's home, out of the login screen's
+# reach: it is given kde-rice's base theme instead (the one it inherits first)
 icons=$(as_user kreadconfig6 --file kdeglobals --group Icons --key Theme 2> /dev/null || true)
+if [ "$icons" = kde-rice ]; then
+    index="$(getent passwd "$user" | cut -d: -f6)/.local/share/icons/kde-rice/index.theme"
+    icons=$(as_user sed -n 's/^Inherits=\([^,]*\).*/\1/p' "$index" 2> /dev/null || true)
+    [ -z "$icons" ] || as_greeter kwriteconfig6 --file "$home/.config/kdeglobals" --group Icons --key Theme "$icons"
+fi
 if [ -n "$icons" ] && [ ! -d "/usr/share/icons/$icons" ]; then
     echo "login-screen: the icon theme $icons is not installed for everyone: the login screen shows none of its icons" >&2
 fi

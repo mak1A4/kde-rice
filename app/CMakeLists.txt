@@ -14,6 +14,7 @@ qt_add_executable(kde-rice
     src/main.cpp
     src/configentry.cpp src/configentry.h
     src/kwin.cpp src/kwin.h
+    src/iconmodel.cpp src/iconmodel.h
     src/kwinplugin.cpp src/kwinplugin.h
     src/panelstyle.cpp src/panelstyle.h
     src/session.cpp src/session.h
@@ -29,6 +30,8 @@ qt_add_qml_module(kde-rice
         qml/pages/WindowsPage.qml
         qml/pages/PanelsPage.qml
         qml/pages/EffectsPage.qml
+        qml/pages/IconsPage.qml
+        qml/pages/IconPicker.qml
 )
 
 # Qt is shared here: its QML plugins are loaded when the application runs,

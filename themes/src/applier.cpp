@@ -1,5 +1,6 @@
 #include "applier.h"
 #include "colour.h"
+#include "icons.h"
 
 #include <KConfigGroup>
 #include <KSharedConfig>
@@ -248,8 +249,13 @@ static void applyKde(Context &context)
         }
     }
 
-    // an icon theme that comes as a pair goes with the mode
-    if (context.tell()) {
+    // kde-rice's icons take the variant of their base for the mode; another
+    // icon theme that comes as a pair goes with the mode itself
+    if (context.tell() && IconStore::inUse()) {
+        if (IconStore::write(mode)) {
+            IconStore::reload();
+        }
+    } else if (context.tell()) {
         globals->reparseConfiguration();
         const QString icons = globals->group(u"Icons"_s).readEntry("Theme");
         QString wanted = icons;
