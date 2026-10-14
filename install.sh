@@ -7,7 +7,9 @@
 # Afterwards the programs that run in the background (the launcher, the
 # gaps) are started again in their new build, and it says whether KWin's
 # parts changed: KWin loads its plugins and the window decoration only when
-# the session starts, so for those it is a new login.
+# the session starts, so for those it is a new login. Plasma keeps the
+# wallpaper's code until it restarts: if that changed, Plasma (the desktop
+# and the panels, not the windows) is restarted.
 set -e
 
 repo=$(cd "$(dirname "$0")" && pwd)
@@ -19,7 +21,10 @@ sums() {
     md5sum $kwin_parts 2> /dev/null || true
 }
 
+wallpaper=/usr/share/plasma/wallpapers/io.github.mak1a4.kde-rice.background
+
 before=$(sums)
+wallpaper_before=$(cat "$wallpaper"/contents/ui/*.qml 2> /dev/null | md5sum)
 
 cd "$repo/packaging"
 rm -f kde-rice-git-*.pkg.tar.zst
@@ -36,6 +41,11 @@ restart() {
 }
 restart kde-rice-launcher kde-rice-launcher --background
 restart kde-rice-gaps kde-rice-gaps
+
+if [ "$(cat "$wallpaper"/contents/ui/*.qml 2> /dev/null | md5sum)" != "$wallpaper_before" ] && pgrep -x plasmashell > /dev/null; then
+    systemctl --user restart plasma-plasmashell.service
+    echo "restarted Plasma for the new wallpaper"
+fi
 
 echo
 if [ "$(sums)" != "$before" ]; then

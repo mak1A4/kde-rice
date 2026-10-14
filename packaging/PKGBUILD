@@ -5,7 +5,7 @@
 # The KWin plugins and the decoration are built against the KWin installed
 # now: run it again after each Plasma update.
 pkgname=kde-rice-git
-pkgver=r9.9254ff0
+pkgver=r10.5b4f19c
 pkgrel=1
 pkgdesc="One place to customize KDE Plasma: a hub application and the KWin and Plasma parts it switches on"
 arch=(x86_64)

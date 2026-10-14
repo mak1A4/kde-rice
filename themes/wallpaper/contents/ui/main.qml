@@ -24,7 +24,33 @@ WallpaperItem {
         showDirs: false
     }
 
-    readonly property url source: own.count > 0 ? own.get(0, "fileUrl") : ""
+    // Looked at whenever the folder's listing changes in any way: kde-rice
+    // swaps one file for the next at once, so the folder has one file before
+    // and after, and a binding on the count alone never looks again.
+    property url source: ""
+
+    function look() {
+        source = own.count > 0 ? own.get(0, "fileUrl") : "";
+    }
+
+    Connections {
+        target: own
+        function onCountChanged() {
+            root.look();
+        }
+        function onRowsInserted() {
+            root.look();
+        }
+        function onRowsRemoved() {
+            root.look();
+        }
+        function onDataChanged() {
+            root.look();
+        }
+        function onModelReset() {
+            root.look();
+        }
+    }
 
     // A picture or a video, filling the screen; `ready` once there is
     // something of it to see.
