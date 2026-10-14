@@ -14,7 +14,7 @@ url="https://github.com/mak1A4/kde-rice"
 license=(GPL-3.0-or-later)
 depends=(kwin kdecoration kconfig kcoreaddons ki18n kcolorscheme kguiaddons kiconthemes kitemmodels
          kirigami kirigami-addons qqc2-desktop-style qt6-base qt6-declarative qt6-multimedia
-         krunner kglobalaccel kdbusaddons layer-shell-qt plasma-workspace)
+         krunner kglobalaccel kdbusaddons layer-shell-qt plasma-workspace librsvg cairo)
 optdepends=('ffmpeg: pictures of backgrounds on the Appearance page'
             'plasma-login-manager: the login screen in step with the session')
 makedepends=(cmake extra-cmake-modules ninja git patch gtk-update-icon-cache)
