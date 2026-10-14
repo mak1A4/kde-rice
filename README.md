@@ -61,7 +61,9 @@ program has one of its own.
   theme pair, GTK 4/libadwaita and btop directly; VS Code keeps its
   built-in Dark/Light Modern theme, coloured with the theme's colours
   (`workbench.colorCustomizations` between two `// kde-rice` comments in its
-  settings), so no theme extensions are installed; Ghostty, WezTerm,
+  settings), so no theme extensions are installed; T3 Code wears a theme
+  kde-rice publishes for it (`~/.local/share/t3/userdata/themes/kde-rice.json`,
+  set once with `t3 theme set`), which its open windows follow; Ghostty, WezTerm,
   tmux and Neovim through files in `~/.local/state/kde-rice/theme/`, which
   their configurations include (`config-file = ?"~/.local/state/kde-rice/theme/ghostty.conf"`
   and the like).

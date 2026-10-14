@@ -22,6 +22,8 @@
 //   btop          ~/.config/btop/themes/kde-rice.theme
 //   Teams, Outlook (the Electron ones for Linux) a tray glyph of kde-rice's,
 //                 in the mode's colour, named in their config.json
+//   T3 Code       a theme it publishes (userdata/themes/kde-rice.json), which
+//                 open windows follow; set as its theme once
 //   VS Code       its built-in theme coloured with the theme's colours
 //                 (settings.json), no extension needed
 //   background    the theme's picture or video on the desktop and the lock

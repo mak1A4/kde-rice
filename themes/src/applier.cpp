@@ -472,6 +472,36 @@ static void applyElectronTrays(Context &context)
     }
 }
 
+// T3 Code follows a theme its machine publishes: a file in its data's
+// userdata/themes, which its server watches, so open windows change with
+// it. It is told once (t3 theme set) that kde-rice's is the one to wear; a
+// theme chosen in its own settings after that stands. The file has to be a
+// real one (it does not read a link).
+static void applyT3Code(Context &context)
+{
+    QStringList homes;
+    if (!qEnvironmentVariableIsEmpty("T3CODE_HOME")) {
+        homes += qEnvironmentVariable("T3CODE_HOME");
+    }
+    homes += {QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/t3"_L1, QDir::homePath() + "/.t3"_L1};
+    for (const QString &home : std::as_const(homes)) {
+        if (!QFileInfo(home + "/userdata"_L1).isDir()) {
+            continue;
+        }
+        context.render(u"t3code.json.tpl"_s, home + "/userdata/themes/kde-rice.json"_L1);
+        const QString told = stateDir() + "/t3code-told"_L1;
+        const QString cli = home + "/bin/t3"_L1;
+        if (context.tell() && !QFileInfo::exists(told) && QFileInfo(cli).isExecutable()) {
+            if (context.run(cli, {u"theme"_s, u"set"_s, u"--base-dir"_s, home, u"kde-rice"_s}) == 0) {
+                write(told, QByteArray());
+            } else {
+                context.problems += u"t3 theme set kde-rice failed"_s;
+            }
+        }
+        return;
+    }
+}
+
 // ---- the background ------------------------------------------------------
 
 static QString evaluateInPlasma(const QString &script)
@@ -627,6 +657,7 @@ QStringList apply(const Theme &theme, const QString &background, const Options &
     applyBtop(context);
     applyVsCode(context);
     applyElectronTrays(context);
+    applyT3Code(context);
     applyBackground(context, background);
     return context.problems;
 }
