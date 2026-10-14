@@ -1,6 +1,8 @@
 #!/bin/sh
-# Builds kde-rice from this checkout and installs it as a pacman package
-# (asks for the password once, for pacman):
+# Builds kde-rice from this checkout and installs it as a pacman package.
+# It is built as the user; everything that needs root afterwards (pacman,
+# Papirus for the login screen, the login screen itself) is one sudo, so the
+# password is asked for once:
 #
 #   ./install.sh
 #
@@ -29,20 +31,38 @@ before=$(sums)
 wallpaper_before=$(cat "$wallpaper"/contents/ui/*.qml 2> /dev/null | md5sum)
 
 cd "$repo/packaging"
-rm -f kde-rice-git-*.pkg.tar.zst
-makepkg --syncdeps --force --install --noconfirm
 
-# The login screen: its icon theme has to be installed for everyone, and
-# it is given the session's settings and kde-rice's wallpaper (as root).
-if getent passwd plasmalogin > /dev/null; then
-    icons=$(kreadconfig6 --file kdeglobals --group Icons --key Theme)
-    case "$icons" in
-        Papirus*)
-            [ -d "/usr/share/icons/$icons" ] || sudo pacman -S --needed --noconfirm papirus-icon-theme
-            ;;
-    esac
-    sudo /usr/lib/kde-rice/login-screen
+# What it needs to build and run and is not installed yet (rarely anything):
+# installed first, which is then a question for the password of its own.
+# shellcheck disable=SC2016
+missing=$(bash -c '. ./PKGBUILD && pacman -T "${depends[@]}" "${makedepends[@]}"' || true)
+if [ -n "$missing" ]; then
+    # shellcheck disable=SC2086
+    sudo pacman -S --needed --asdeps --noconfirm $missing
 fi
+
+rm -f kde-rice-git-*.pkg.tar.zst
+makepkg --force --noconfirm
+package=$(ls "$PWD"/kde-rice-git-*.pkg.tar.zst)
+
+# The login screen needs its icon theme installed for everyone.
+papirus=
+icons=$(kreadconfig6 --file kdeglobals --group Icons --key Theme)
+case "$icons" in
+    Papirus*) [ -d "/usr/share/icons/$icons" ] || papirus=papirus-icon-theme ;;
+esac
+login=
+getent passwd plasmalogin > /dev/null && login=yes
+
+# all that is root's, at once: the package, Papirus, and the login screen
+# given the session's settings and kde-rice's wallpaper (sudo tells it who
+# asked)
+sudo sh -c '
+    set -e
+    pacman -U --noconfirm "$1"
+    [ -z "$2" ] || pacman -S --needed --noconfirm "$2"
+    [ -z "$3" ] || /usr/lib/kde-rice/login-screen
+' sh "$package" "$papirus" "$login"
 
 # kde-rice's Plasma style, if it is the one in use, made again by the new
 # build
