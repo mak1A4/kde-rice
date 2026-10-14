@@ -47,6 +47,16 @@ as_greeter() { runuser -u "$greeter" -- "$@"; }
 
 install -d -m 755 "$shared"
 install -d -m 755 -o "$user" "$shared/background"
+# the background in use now, at once (kde-rice copies it there itself at
+# each change of theme from then on)
+userdata="$(getent passwd "$user" | cut -d: -f6)/.local/share/kde-rice/background"
+for file in "$userdata"/*; do
+    [ -e "$file" ] || continue
+    name=$(basename "$file")
+    as_user cp --dereference "$file" "$shared/background/$name.part"
+    chmod 644 "$shared/background/$name.part"
+    mv -f "$shared/background/$name.part" "$shared/background/$name"
+done
 
 install -d -m 755 "$(dirname "$setting")"
 printf '[Greeter]\nWallpaperPluginId=%s\n' "$plugin" > "$setting"

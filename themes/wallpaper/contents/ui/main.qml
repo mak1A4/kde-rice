@@ -38,8 +38,16 @@ WallpaperItem {
     // and after, and a binding on the count alone never looks again.
     property url source: ""
 
+    // Plasma's own picture when there is none (a login screen before kde-rice
+    // has given it one), not black
+    readonly property url fallback: "file:///usr/share/wallpapers/Next/contents/images/5120x2880.png"
+
+    // once both folders are read: before that, an empty listing means nothing
     function look() {
-        source = own.count > 0 ? own.get(0, "fileUrl") : (shared.count > 0 ? shared.get(0, "fileUrl") : "");
+        if (own.status === FolderListModel.Loading || shared.status === FolderListModel.Loading) {
+            return;
+        }
+        source = own.count > 0 ? own.get(0, "fileUrl") : (shared.count > 0 ? shared.get(0, "fileUrl") : fallback);
     }
 
     Connections {
@@ -59,6 +67,9 @@ WallpaperItem {
         function onModelReset() {
             root.look();
         }
+        function onStatusChanged() {
+            root.look();
+        }
     }
 
     Connections {
@@ -76,6 +87,9 @@ WallpaperItem {
             root.look();
         }
         function onModelReset() {
+            root.look();
+        }
+        function onStatusChanged() {
             root.look();
         }
     }
