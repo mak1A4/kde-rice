@@ -170,7 +170,14 @@ void IconModel::search(const QString &text)
 
 bool IconModel::setIcon(const QString &name, const QUrl &picture)
 {
-    if (!IconStore::setOverride(name, picture.toLocalFile())) {
+    // an app icon (from a theme's apps, or a taskbar app's) is trimmed to
+    // fill its canvas, as kde-rice-whitesur's are
+    bool app = picture.toLocalFile().contains("/apps/"_L1);
+    const QVariantList apps = taskbar();
+    for (const QVariant &entry : apps) {
+        app |= entry.toMap().value(u"icon"_s).toString() == name;
+    }
+    if (!IconStore::setOverride(name, picture.toLocalFile(), app)) {
         return false;
     }
     IconStore::reload();

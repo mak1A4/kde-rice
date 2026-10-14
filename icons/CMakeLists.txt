@@ -1,6 +1,7 @@
 # kde-rice's own icons: WhiteSur, built from its released sources with its
 # own installer under the name kde-rice-whitesur (with -light and -dark
-# variants, and the KDE logo where WhiteSur has Apple's), and shipped with
+# variants, and the KDE logo where WhiteSur has Apple's), its app icons
+# trimmed to fill their canvas (kde-rice-trim-icons), and shipped with
 # kde-rice, so no icon theme has to be installed besides. The user's own
 # icons go on top of it (themes/src/icons.cpp).
 #
@@ -29,7 +30,9 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E env DESKTOP_SESSION=plasma ${BASH} ${whitesur_SOURCE_DIR}/install.sh -d ${themes} -n kde-rice-whitesur -p > ${CMAKE_CURRENT_BINARY_DIR}/whitesur-install.log
     # the system makes its caches of icon themes itself, when they are installed
     COMMAND find ${themes} -name icon-theme.cache -delete
-    DEPENDS ${whitesur_SOURCE_DIR}/install.sh
+    # app icons a little larger: WhiteSur leaves a margin round each tile
+    COMMAND $<TARGET_FILE:kde-rice-trim-icons> ${themes}/kde-rice-whitesur/apps ${themes}/kde-rice-whitesur-dark/apps
+    DEPENDS ${whitesur_SOURCE_DIR}/install.sh kde-rice-trim-icons
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     COMMENT "Building WhiteSur ${WHITESUR_VERSION} as kde-rice-whitesur"
     VERBATIM

@@ -1,4 +1,5 @@
 #include "icons.h"
+#include "trim.h"
 
 #include <KConfigGroup>
 #include <KIconLoader>
@@ -326,7 +327,13 @@ void removeOverride(const QString &name)
     s_indexes.remove(themeName());
 }
 
-bool setOverride(const QString &name, const QString &picture)
+bool trimOverride(const QString &name)
+{
+    const QString path = overrideFor(name);
+    return path.endsWith(".svg"_L1) && IconTrim::trimFile(path);
+}
+
+bool setOverride(const QString &name, const QString &picture, bool trim)
 {
     static const QRegularExpression safe(u"^[A-Za-z0-9._+-]+$"_s);
     const QFileInfo source(picture);
@@ -344,7 +351,13 @@ bool setOverride(const QString &name, const QString &picture)
     }
     QFile::setPermissions(part, QFile::ReadOwner | QFile::WriteOwner | QFile::ReadGroup | QFile::ReadOther);
     removeOverride(name);
-    return QFile::rename(part, target);
+    if (!QFile::rename(part, target)) {
+        return false;
+    }
+    if (trim && suffix == "svg"_L1) {
+        IconTrim::trimFile(target);
+    }
+    return true;
 }
 
 QStringList overrides()

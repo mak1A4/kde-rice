@@ -11,7 +11,10 @@
 //   kde-rice-theme values [<theme>]         what the templates are filled in with
 //   kde-rice-theme icons use                kde-rice's icon theme in use
 //   kde-rice-theme icons base [<theme>]     its base theme (shown, or set)
-//   kde-rice-theme icons set <name> <file>  your own picture for an icon name
+//   kde-rice-theme icons set <name> <file> [--trim]
+//                                           your own picture for an icon name (an
+//                                           app icon trimmed to fill its canvas)
+//   kde-rice-theme icons trim <name>...     your pictures for those names trimmed
 //   kde-rice-theme icons reset <name>       the base theme's again
 //   kde-rice-theme icons find <name>        that icon in every installed theme
 //
@@ -137,8 +140,15 @@ int main(int argc, char *argv[])
             out << IconStore::base() << "\t" << IconStore::baseFor(mode) << "\n";
             return 0;
         }
-        if (what == "set"_L1 && arguments.size() == 2) {
-            if (!IconStore::setOverride(arguments[0], arguments[1])) {
+        if (what == "trim"_L1 && !arguments.isEmpty()) {
+            for (const QString &name : std::as_const(arguments)) {
+                out << name << (IconStore::trimOverride(name) ? ": trimmed\n" : ": left as it is\n");
+            }
+            IconStore::reload();
+            return 0;
+        }
+        if (what == "set"_L1 && (arguments.size() == 2 || (arguments.size() == 3 && arguments[2] == "--trim"_L1))) {
+            if (!IconStore::setOverride(arguments[0], arguments[1], arguments.size() == 3)) {
                 err << "cannot use " << arguments[1] << " for " << arguments[0] << " (an SVG or PNG file is needed)\n";
                 return 1;
             }
