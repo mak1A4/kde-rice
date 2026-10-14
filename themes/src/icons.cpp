@@ -5,6 +5,8 @@
 #include <KSharedConfig>
 #include <KSharedDataCache>
 
+#include <QDBusConnection>
+#include <QDBusMessage>
 #include <QDir>
 #include <QDirIterator>
 #include <QFile>
@@ -184,6 +186,11 @@ void reload()
     for (int group = KIconLoader::FirstGroup; group < KIconLoader::LastGroup; ++group) {
         KIconLoader::emitChange(KIconLoader::Group(group));
     }
+    // Plasma and Qt's own icons (QIcon::fromTheme, through KDE's platform
+    // theme) listen for KDE's settings: "icons changed" (4), for every group
+    auto signal = QDBusMessage::createSignal(u"/KGlobalSettings"_s, u"org.kde.KGlobalSettings"_s, u"notifyChange"_s);
+    signal << 4 << 0;
+    QDBusConnection::sessionBus().send(signal);
 }
 
 QList<Theme> installed()
