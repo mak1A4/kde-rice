@@ -17,6 +17,12 @@
 // the same sides from the window (`kdeRiceJoinedEdges`) for its title bar,
 // outline and shadow.
 //
+// Plasma's popups (tooltips, applet popups, notifications, on-screen
+// displays) are given the radius of their frame, Breeze's 6 px: KWin's blur
+// then follows it with a smooth edge, where Plasma's mask for the blur is
+// whole pixels, jagged at a fractional scale. kde-rice's Plasma style makes
+// those masks square, so the blur covers the frame's corners whole.
+//
 // The radius is `Radius` in the group `KDERiceRoundCorners` of kwinrc
 // (logical pixels, 0 for none), read again when KWin is told to reconfigure.
 // Not there, it is Breeze's own, 5. kde-rice's Breeze (kwin/decoration/breeze) reads
@@ -45,6 +51,9 @@ using namespace KWin;
 static const char s_noTitleBar[] = "kdeRiceNoTitleBar";
 // the sides joined to another window, as kde-rice's Breeze reads them
 static const char s_joined[] = "kdeRiceJoinedEdges";
+// the corner radius of Breeze's popup frames
+static constexpr qreal s_popupRadius = 6;
+
 enum JoinedEdge {
     JoinedLeft = 1,
     JoinedTop = 2,
@@ -88,6 +97,9 @@ public:
                 setFramed(window, false);
                 window->setProperty(s_joined, QVariant());
                 window->setBorderRadius(own(window));
+            } else if (plasmaPopup(window)) {
+                disconnect(window, nullptr, this, nullptr);
+                window->setBorderRadius(BorderRadius());
             }
         }
     }
@@ -101,6 +113,13 @@ private:
             return false;
         }
         return window->isClient() && !window->isDeleted() && (window->isNormalWindow() || window->isDialog());
+    }
+
+    // a popup of Plasma's, in a frame of its style
+    static bool plasmaPopup(const Window *window)
+    {
+        return window->resourceClass() == QLatin1String("plasmashell") && !window->isDeleted()
+            && (window->isTooltip() || window->isAppletPopup() || window->isNotification() || window->isCriticalNotification() || window->isOnScreenDisplay());
     }
 
     // what KWin gives the window without this plugin
@@ -265,6 +284,16 @@ private:
 
     void track(Window *window)
     {
+        if (plasmaPopup(window)) {
+            const auto round = [window] {
+                if (window->borderRadius() != BorderRadius(s_popupRadius)) {
+                    window->setBorderRadius(BorderRadius(s_popupRadius));
+                }
+            };
+            connect(window, &Window::borderRadiusChanged, this, round);
+            round();
+            return;
+        }
         if (!wanted(window)) {
             return;
         }

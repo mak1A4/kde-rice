@@ -112,6 +112,14 @@ panel's background at the chosen opacity (everything else, and the colours,
 Breeze's and the colour scheme's), and applies it. "Back to the Plasma style
 before" undoes that. From a terminal: `kde-rice --panel-opacity <percent>`.
 
+The same style smooths the corners of Plasma's popups and tooltips. Their
+blur is cut out along a mask Plasma gives KWin in whole pixels: at a
+fractional scale the round corners come out as steps, and where a step lies
+inside the frame's own corner the background shows through unblurred. The
+style makes those masks square, and the corners plugin gives Plasma's popup
+windows the frame's radius (6 px), along which KWin's blur has a smooth
+edge.
+
 ## How the hub changes Plasma
 
 The hub does what System Settings does: it writes the configuration files

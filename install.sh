@@ -44,6 +44,13 @@ if getent passwd plasmalogin > /dev/null; then
     sudo /usr/lib/kde-rice/login-screen
 fi
 
+# kde-rice's Plasma style, if it is the one in use, made again by the new
+# build
+if [ "$(kreadconfig6 --file plasmarc --group Theme --key name)" = kde-rice ]; then
+    kde-rice --panel-opacity "$(kreadconfig6 --file kde-ricerc --group Panels --key Opacity --default 85)"
+    echo "made kde-rice's Plasma style again"
+fi
+
 # the background programs, as the new build
 restart() {
     if pkill -x "$1"; then

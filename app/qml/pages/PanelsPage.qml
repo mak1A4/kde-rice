@@ -48,7 +48,7 @@ FormCard.FormCardPage {
                     wrapMode: Text.Wrap
                     font: Kirigami.Theme.smallFont
                     color: Kirigami.Theme.disabledTextColor
-                    text: i18n("Through kde-rice's Plasma style: Breeze, with the panel's background as see-through as set here (Breeze's own is 85 %). The panel must be Translucent or Adaptive in its settings.")
+                    text: i18n("Through kde-rice's Plasma style: Breeze, with the panel's background as see-through as set here (Breeze's own is 85 %), and popups and tooltips with smooth corners where Breeze's are jagged at a fractional scale. The panel must be Translucent or Adaptive in its settings.")
                 }
             }
 
