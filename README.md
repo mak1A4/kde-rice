@@ -90,6 +90,16 @@ the panel and Plasma keeps it floating (it un-floats a panel whose window a
 window overlaps). Switched on, with the gap's size, on the hub's Windows page
 (`[Gaps] Enabled`, `Size` in `kde-ricerc`); it runs at login when on.
 
+## Panel transparency
+
+Plasma's panel settings know only opaque, translucent and adaptive; how
+translucent is the Plasma style's (Breeze draws the panel at 85 %). The
+Panels page has a slider for it: kde-rice makes a Plasma style of its own,
+`kde-rice` in `~/.local/share/plasma/desktoptheme/`, which is Breeze with the
+panel's background at the chosen opacity (everything else, and the colours,
+Breeze's and the colour scheme's), and applies it. "Back to the Plasma style
+before" undoes that. From a terminal: `kde-rice --panel-opacity <percent>`.
+
 ## How the hub changes Plasma
 
 The hub does what System Settings does: it writes the configuration files

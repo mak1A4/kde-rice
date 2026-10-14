@@ -1,5 +1,5 @@
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 Widgets DBus Concurrent)
-find_package(KF6 ${KF_MIN_VERSION} REQUIRED COMPONENTS Config CoreAddons I18n)
+find_package(KF6 ${KF_MIN_VERSION} REQUIRED COMPONENTS Archive Config CoreAddons I18n)
 
 # only needed when the application runs
 include(ECMFindQmlModule)
@@ -15,6 +15,7 @@ qt_add_executable(kde-rice
     src/configentry.cpp src/configentry.h
     src/kwin.cpp src/kwin.h
     src/kwinplugin.cpp src/kwinplugin.h
+    src/panelstyle.cpp src/panelstyle.h
     src/session.cpp src/session.h
     src/thememodel.cpp src/thememodel.h
 )
@@ -48,6 +49,7 @@ target_link_libraries(kde-rice PRIVATE
     Qt6::Quick
     Qt6::QuickControls2
     Qt6::Widgets
+    KF6::Archive
     KF6::ConfigCore
     KF6::CoreAddons
     KF6::I18n
