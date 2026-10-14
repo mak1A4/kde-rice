@@ -188,10 +188,16 @@ static bool tint(const QString &theme, const QString &colour, QList<std::pair<QS
     if (!colour.isEmpty()) {
         dirs = statusDirs(theme);
     }
-    QString stamp = theme + u'|' + colour;
+    // the user's own one-colour pictures are part of it (they are coloured
+    // too); their other pictures are not
+    // the version of how the copies are made: a newer kde-rice makes them again
+    QString stamp = u"2|"_s + theme + u'|' + colour;
     const auto mineNow = QDir(overridesDir()).entryInfoList({u"*.svg"_s}, QDir::Files, QDir::Name);
     for (const QFileInfo &file : mineNow) {
-        stamp += u'|' + file.fileName() + u':' + QString::number(file.size()) + u':' + QString::number(file.lastModified().toSecsSinceEpoch());
+        QFile in(file.absoluteFilePath());
+        if (in.open(QIODevice::ReadOnly) && in.read(8192).contains("ColorScheme-Text")) {
+            stamp += u'|' + file.fileName() + u':' + QString::number(file.size()) + u':' + QString::number(file.lastModified().toSecsSinceEpoch());
+        }
     }
     QFile current(tinted + u'/' + s_stamp);
     if (current.open(QIODevice::ReadOnly) && QString::fromUtf8(current.readAll()) == stamp) {
@@ -251,8 +257,8 @@ static bool tint(const QString &theme, const QString &colour, QList<std::pair<QS
             }
         }
     }
-    // the user's own pictures drawn in the same grey (a tray glyph made in
-    // WhiteSur's style): theirs, coloured too, before everything else
+    // the user's own one-colour pictures (a tray glyph made in WhiteSur's
+    // style, a launcher glyph): theirs, coloured too, before everything else
     QDir().mkpath(tinted + "/own"_L1);
     const auto mine = QDir(overridesDir()).entryInfoList({u"*.svg"_s}, QDir::Files);
     for (const QFileInfo &file : mine) {
@@ -261,10 +267,12 @@ static bool tint(const QString &theme, const QString &colour, QList<std::pair<QS
             continue;
         }
         QString svg = QString::fromUtf8(in.readAll());
-        if (!scheme.match(svg).hasMatch() || !svg.contains(grey, Qt::CaseInsensitive)) {
+        // by the text colour it says it is drawn in, whatever grey that is
+        const auto declared = scheme.match(svg);
+        if (!declared.hasMatch()) {
             continue;
         }
-        svg.replace(grey, colour, Qt::CaseInsensitive);
+        svg.replace(declared.captured(1), colour, Qt::CaseInsensitive);
         QFile out(tinted + "/own/"_L1 + file.fileName());
         if (out.open(QIODevice::WriteOnly)) {
             out.write(svg.toUtf8());
@@ -486,7 +494,32 @@ QString overrideFor(const QString &name)
     return {};
 }
 
+static void removeFiles(const QString &name);
+
+// the mode the theme was last written for, from its base's variant
+static QString writtenMode()
+{
+    KConfig index(themeDir() + "/index.theme"_L1, KConfig::SimpleConfig);
+    const QString first = index.group(u"Icon Theme"_s).readEntry("Inherits").section(u',', 0, 0);
+    return first.endsWith("-dark"_L1, Qt::CaseInsensitive) ? u"dark"_s : u"light"_s;
+}
+
+// the theme written again after a change of the user's pictures, for the
+// coloured copies of their one-colour ones
+static void rewrite()
+{
+    if (QFileInfo::exists(themeDir() + "/index.theme"_L1)) {
+        write(writtenMode());
+    }
+}
+
 void removeOverride(const QString &name)
+{
+    removeFiles(name);
+    rewrite();
+}
+
+static void removeFiles(const QString &name)
 {
     for (const auto *suffix : {".svg", ".svgz", ".png"}) {
         QFile::remove(overridesDir() + u'/' + name + QString::fromLatin1(suffix));
@@ -523,13 +556,14 @@ bool setOverride(const QString &name, const QString &picture, bool trim)
     }
     QFile::setPermissions(part, QFile::ReadOwner | QFile::WriteOwner | QFile::ReadGroup | QFile::ReadOther);
     s_replaced |= !overrideFor(name).isEmpty();
-    removeOverride(name);
+    removeFiles(name);
     if (!QFile::rename(part, target)) {
         return false;
     }
     if (trim && (suffix == "svg"_L1 || suffix == "png"_L1)) {
         IconTrim::trimFile(target);
     }
+    rewrite();
     return true;
 }
 
