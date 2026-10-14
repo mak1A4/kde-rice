@@ -1,0 +1,26 @@
+{
+  "colors": {
+    "view": "#fdf6e3",
+    "bg": "#eee8d5",
+    "surface": "#ddd6c1",
+    "surfaceHover": "#cdc7b3",
+    "surfaceActive": "#b9b5a4",
+    "fg": "#586e75",
+    "fgDim": "#657b83",
+    "accent": "#268bd2",
+    "accentFg": "#fdf6e3",
+    "warning": "#b58900",
+    "error": "#dc322f",
+    "desktops": ["#268bd2", "#6c71c4", "#d33682", "#cb4b16", "#859900", "#2aa198", "#b58900", "#dc322f"],
+    "terminal": ["#073642", "#dc322f", "#859900", "#b58900", "#268bd2", "#d33682", "#2aa198", "#bbb5a2", "#002b36", "#cb4b16", "#586e75", "#657b83", "#839496", "#6c71c4", "#93a1a1", "#fdf6e3"],
+    "terminalBackground": "#fdf6e3",
+    "terminalForeground": "#657b83",
+    "terminalCursor": "#657b83",
+    "terminalSelection": "#eee8d5"
+  },
+  "apps": {
+    "nvim": "solarized",
+    "vscode": "Solarized Light",
+    "btop": "solarized_light"
+  }
+}

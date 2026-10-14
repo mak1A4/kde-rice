@@ -1,0 +1,25 @@
+{
+  "colors": {
+    "view": "#f8f9fa",
+    "bg": "#f3f4f5",
+    "surface": "#e7eaed",
+    "surfaceHover": "#d2d5d8",
+    "surfaceActive": "#cccfd3",
+    "fg": "#5c6166",
+    "fgDim": "#8a9199",
+    "accent": "#fa8d3e",
+    "accentFg": "#f8f9fa",
+    "warning": "#f2ae49",
+    "error": "#e65050",
+    "desktops": ["#399ee6", "#a37acc", "#fa8d3e", "#86b300", "#4cbf99", "#55b4d4", "#f2ae49", "#f07171"],
+    "terminal": ["#000000", "#ea6c6d", "#6cbf43", "#eca944", "#3199e1", "#9e75c7", "#46ba94", "#bababa", "#686868", "#f07171", "#86b300", "#f2ae49", "#399ee6", "#a37acc", "#4cbf99", "#d1d1d1"],
+    "terminalBackground": "#f8f9fa",
+    "terminalForeground": "#5c6166",
+    "terminalCursor": "#ffaa33",
+    "terminalSelection": "#d2d5d8"
+  },
+  "apps": {
+    "nvim": "ayu-light",
+    "vscode": "Ayu Light"
+  }
+}

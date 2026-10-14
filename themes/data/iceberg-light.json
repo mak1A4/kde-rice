@@ -1,0 +1,25 @@
+{
+  "colors": {
+    "view": "#e8e9ec",
+    "bg": "#dcdfe7",
+    "surface": "#cad0de",
+    "surfaceHover": "#b8c1d6",
+    "surfaceActive": "#a7b2cd",
+    "fg": "#33374c",
+    "fgDim": "#757ca3",
+    "accent": "#2d539e",
+    "accentFg": "#e8e9ec",
+    "warning": "#c57339",
+    "error": "#cc517a",
+    "desktops": ["#2d539e", "#7759b4", "#cc517a", "#c57339", "#668e3d", "#3f83a6"],
+    "terminal": ["#dcdfe7", "#cc517a", "#668e3d", "#c57339", "#2d539e", "#7759b4", "#3f83a6", "#33374c", "#8389a3", "#cc3768", "#598030", "#b6662d", "#22478e", "#6845ad", "#327698", "#262a3f"],
+    "terminalBackground": "#e8e9ec",
+    "terminalForeground": "#33374c",
+    "terminalCursor": "#33374c",
+    "terminalSelection": "#b8c1d6"
+  },
+  "apps": {
+    "nvim": "iceberg",
+    "vscode": "Iceberg Light"
+  }
+}

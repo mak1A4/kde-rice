@@ -1,0 +1,25 @@
+{
+  "colors": {
+    "view": "#232136",
+    "bg": "#2a273f",
+    "surface": "#393552",
+    "surfaceHover": "#44415a",
+    "surfaceActive": "#56526e",
+    "fg": "#e0def4",
+    "fgDim": "#908caa",
+    "accent": "#c4a7e7",
+    "accentFg": "#232136",
+    "warning": "#f6c177",
+    "error": "#eb6f92",
+    "desktops": ["#c4a7e7", "#ea9a97", "#eb6f92", "#f6c177", "#9ccfd8", "#3e8fb0"],
+    "terminal": ["#393552", "#eb6f92", "#3e8fb0", "#f6c177", "#9ccfd8", "#c4a7e7", "#ea9a97", "#e0def4", "#6e6a86", "#eb6f92", "#3e8fb0", "#f6c177", "#9ccfd8", "#c4a7e7", "#ea9a97", "#e0def4"],
+    "terminalBackground": "#232136",
+    "terminalForeground": "#e0def4",
+    "terminalCursor": "#e0def4",
+    "terminalSelection": "#44415a"
+  },
+  "apps": {
+    "nvim": "rose-pine-moon",
+    "vscode": "Rosé Pine Moon"
+  }
+}

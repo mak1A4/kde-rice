@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=kde-rice Launcher
+GenericName=Search
+Comment=Search applications, windows, settings and more with KDE's runners
+Exec=kde-rice-launcher
+Icon=search
+NoDisplay=true
+StartupNotify=false
+OnlyShowIn=KDE;
+X-KDE-StartupNotify=false

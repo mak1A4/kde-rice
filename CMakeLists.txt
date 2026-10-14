@@ -18,14 +18,22 @@ include(KDECompilerSettings NO_POLICY_SCOPE)
 include(FeatureSummary)
 
 option(KDERICE_APP "The hub application" ON)
+option(KDERICE_LAUNCHER "The launcher, kde-rice's KRunner" ON)
+option(KDERICE_THEMES "Themes and what applies them" ON)
 option(KDERICE_KWIN_PLUGINS "KWin plugins (built against the installed KWin)" ON)
 option(KDERICE_DECORATION "kde-rice's Breeze window decoration (fetches Breeze's sources)" ON)
 
 # the reverse-DNS prefix every part is installed under
 set(KDERICE_ID "io.github.mak1a4.kde-rice")
 
+if(KDERICE_THEMES)
+    add_subdirectory(themes)
+endif()
 if(KDERICE_APP)
     add_subdirectory(app)
+endif()
+if(KDERICE_LAUNCHER)
+    add_subdirectory(launcher)
 endif()
 if(KDERICE_KWIN_PLUGINS)
     add_subdirectory(kwin/plugins)

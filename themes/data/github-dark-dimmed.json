@@ -1,0 +1,25 @@
+{
+  "colors": {
+    "view": "#1c2128",
+    "bg": "#22272e",
+    "surface": "#2d333b",
+    "surfaceHover": "#373e47",
+    "surfaceActive": "#444c56",
+    "fg": "#adbac7",
+    "fgDim": "#768390",
+    "accent": "#539bf5",
+    "accentFg": "#1c2128",
+    "warning": "#c69026",
+    "error": "#e5534b",
+    "desktops": ["#539bf5", "#986ee2", "#c96198", "#cc6b2c", "#57ab5a", "#76e3ea", "#c69026", "#e5534b"],
+    "terminal": ["#545d68", "#f47067", "#57ab5a", "#c69026", "#539bf5", "#b083f0", "#39c5cf", "#909dab", "#636e7b", "#ff938a", "#6bc46d", "#daaa3f", "#6cb6ff", "#dcbdfb", "#56d4dd", "#cdd9e5"],
+    "terminalBackground": "#22272e",
+    "terminalForeground": "#adbac7",
+    "terminalCursor": "#539bf5",
+    "terminalSelection": "#373e47"
+  },
+  "apps": {
+    "nvim": "github_dark_dimmed",
+    "vscode": "GitHub Dark Dimmed"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "colors": {
+    "view": "#f6f2ee",
+    "bg": "#e4dcd4",
+    "surface": "#dbd1dd",
+    "surfaceHover": "#d3c7bb",
+    "surfaceActive": "#aab0ad",
+    "fg": "#3d2b5a",
+    "fgDim": "#643f61",
+    "accent": "#2848a9",
+    "accentFg": "#f6f2ee",
+    "warning": "#ac5402",
+    "error": "#a5222f",
+    "desktops": ["#2848a9", "#6e33ce", "#a440b5", "#955f61", "#396847", "#287980", "#ac5402", "#a5222f"],
+    "terminal": ["#352c24", "#a5222f", "#396847", "#ac5402", "#2848a9", "#6e33ce", "#287980", "#bfb6ae", "#534c45", "#b3434e", "#577f63", "#b86e28", "#4863b6", "#8452d5", "#488d93", "#f4ece6"],
+    "terminalBackground": "#f6f2ee",
+    "terminalForeground": "#3d2b5a",
+    "terminalCursor": "#3d2b5a",
+    "terminalSelection": "#e7d2be"
+  },
+  "apps": {
+    "nvim": "dayfox"
+  }
+}

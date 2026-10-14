@@ -1,0 +1,6 @@
+{
+  "apps": {
+    "nvim": "catppuccin-mocha",
+    "vscode": "Catppuccin Mocha"
+  }
+}

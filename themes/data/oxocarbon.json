@@ -1,0 +1,24 @@
+{
+  "colors": {
+    "view": "#131313",
+    "bg": "#161616",
+    "surface": "#262626",
+    "surfaceHover": "#393939",
+    "surfaceActive": "#525252",
+    "fg": "#f2f4f8",
+    "fgDim": "#a8a8a8",
+    "accent": "#ff7eb6",
+    "accentFg": "#161616",
+    "warning": "#f1c21b",
+    "error": "#ee5396",
+    "desktops": ["#78a9ff", "#be95ff", "#ff7eb6", "#ee5396", "#42be65", "#08bdba", "#3ddbd9", "#33b1ff", "#82cfff"],
+    "terminal": ["#161616", "#00dfdb", "#00b4ff", "#ff4297", "#00c15a", "#c693ff", "#ff74b8", "#f2f4f8", "#585858", "#00dfdb", "#00b4ff", "#ff4297", "#00c15a", "#c693ff", "#ff74b8", "#f2f4f8"],
+    "terminalBackground": "#161616",
+    "terminalForeground": "#f2f4f8",
+    "terminalCursor": "#ffffff",
+    "terminalSelection": "#393939"
+  },
+  "apps": {
+    "nvim": "oxocarbon"
+  }
+}

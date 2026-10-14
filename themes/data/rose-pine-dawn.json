@@ -1,0 +1,25 @@
+{
+  "colors": {
+    "view": "#fffaf3",
+    "bg": "#faf4ed",
+    "surface": "#f2e9e1",
+    "surfaceHover": "#dfdad9",
+    "surfaceActive": "#cecacd",
+    "fg": "#575279",
+    "fgDim": "#797593",
+    "accent": "#907aa9",
+    "accentFg": "#faf4ed",
+    "warning": "#ea9d34",
+    "error": "#b4637a",
+    "desktops": ["#907aa9", "#d7827e", "#b4637a", "#ea9d34", "#56949f", "#286983"],
+    "terminal": ["#f2e9e1", "#b4637a", "#286983", "#ea9d34", "#56949f", "#907aa9", "#d7827e", "#575279", "#9893a5", "#b4637a", "#286983", "#ea9d34", "#56949f", "#907aa9", "#d7827e", "#575279"],
+    "terminalBackground": "#faf4ed",
+    "terminalForeground": "#575279",
+    "terminalCursor": "#575279",
+    "terminalSelection": "#dfdad9"
+  },
+  "apps": {
+    "nvim": "rose-pine-dawn",
+    "vscode": "Rosé Pine Dawn"
+  }
+}

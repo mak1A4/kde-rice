@@ -1,0 +1,25 @@
+{
+  "colors": {
+    "view": "#1c212b",
+    "bg": "#1f2430",
+    "surface": "#323843",
+    "surfaceHover": "#444a55",
+    "surfaceActive": "#4a505a",
+    "fg": "#cccac2",
+    "fgDim": "#707a8c",
+    "accent": "#ffcc66",
+    "accentFg": "#1f2430",
+    "warning": "#ffa759",
+    "error": "#ff6666",
+    "desktops": ["#73d0ff", "#dfbfff", "#f28779", "#ffad66", "#d5ff80", "#95e6cb", "#5ccfe6", "#ffd173"],
+    "terminal": ["#171b24", "#ed8274", "#87d96c", "#facc6e", "#6dcbfa", "#dabafa", "#90e1c6", "#c7c7c7", "#686868", "#f28779", "#d5ff80", "#ffd173", "#73d0ff", "#dfbfff", "#95e6cb", "#ffffff"],
+    "terminalBackground": "#1f2430",
+    "terminalForeground": "#cccac2",
+    "terminalCursor": "#ffcc66",
+    "terminalSelection": "#444a55"
+  },
+  "apps": {
+    "nvim": "ayu-mirage",
+    "vscode": "Ayu Mirage"
+  }
+}

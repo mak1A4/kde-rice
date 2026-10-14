@@ -1,0 +1,13 @@
+{
+    "KPackageStructure": "Plasma/Wallpaper",
+    "KPlugin": {
+        "Category": "",
+        "Description": "The picture or video of the kde-rice theme, on the desktop and the lock screen",
+        "Icon": "preferences-desktop-wallpaper",
+        "Id": "io.github.mak1a4.kde-rice.background",
+        "License": "GPL",
+        "Name": "kde-rice theme background",
+        "Version": "1"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

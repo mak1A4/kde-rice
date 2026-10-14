@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=kde-rice Launcher
+Comment=Keeps the kde-rice launcher ready for its shortcut
+Exec=kde-rice-launcher --background
+Icon=search
+NoDisplay=true
+StartupNotify=false
+OnlyShowIn=KDE;
+X-KDE-StartupNotify=false

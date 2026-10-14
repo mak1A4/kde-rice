@@ -3,8 +3,10 @@
 #include <KLocalizedString>
 
 #include <QApplication>
+#include <QCommandLineParser>
 #include <QIcon>
 #include <QQmlApplicationEngine>
+#include <QQmlContext>
 #include <QQuickStyle>
 
 int main(int argc, char *argv[])
@@ -21,6 +23,12 @@ int main(int argc, char *argv[])
                      KAboutLicense::GPL_V3);
     about.setDesktopFileName(QStringLiteral(KDERICE_ID));
     KAboutData::setApplicationData(about);
+    QCommandLineParser parser;
+    about.setupCommandLine(&parser);
+    parser.addOption({QStringLiteral("page"), i18n("The page to open: appearance, windows, panels or effects."), QStringLiteral("page")});
+    parser.process(app);
+    about.processCommandLine(&parser);
+
     QApplication::setWindowIcon(QIcon::fromTheme(QStringLiteral("preferences-desktop-theme-global")));
 
     if (qEnvironmentVariableIsEmpty("QT_QUICK_CONTROLS_STYLE")) {
@@ -29,6 +37,7 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
     KLocalization::setupLocalizedContext(&engine);
+    engine.rootContext()->setContextProperty(QStringLiteral("initialPage"), parser.value(QStringLiteral("page")));
     engine.loadFromModule("io.github.mak1a4.rice", "Main");
     if (engine.rootObjects().isEmpty()) {
         return 1;

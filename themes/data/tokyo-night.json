@@ -1,0 +1,26 @@
+{
+  "colors": {
+    "view": "#16161e",
+    "bg": "#1a1b26",
+    "surface": "#292e42",
+    "surfaceHover": "#3b4261",
+    "surfaceActive": "#545c7e",
+    "fg": "#c0caf5",
+    "fgDim": "#a9b1d6",
+    "accent": "#7aa2f7",
+    "accentFg": "#1a1b26",
+    "warning": "#e0af68",
+    "error": "#f7768e",
+    "desktops": ["#7aa2f7", "#bb9af7", "#ff9e64", "#9ece6a", "#73daca", "#7dcfff", "#e0af68", "#f7768e"],
+    "terminal": ["#15161e", "#f7768e", "#9ece6a", "#e0af68", "#7aa2f7", "#bb9af7", "#7dcfff", "#a9b1d6", "#414868", "#f7768e", "#9ece6a", "#e0af68", "#7aa2f7", "#bb9af7", "#7dcfff", "#c0caf5"],
+    "terminalBackground": "#1a1b26",
+    "terminalForeground": "#c0caf5",
+    "terminalCursor": "#c0caf5",
+    "terminalSelection": "#283457"
+  },
+  "apps": {
+    "nvim": "tokyonight-night",
+    "vscode": "Tokyo Night",
+    "btop": "tokyo-night"
+  }
+}

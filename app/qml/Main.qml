@@ -64,5 +64,9 @@ Kirigami.ApplicationWindow {
     Component { id: panels; PanelsPage {} }
     Component { id: effects; EffectsPage {} }
 
-    Component.onCompleted: sections[1].trigger()
+    // --page on the command line, else Appearance
+    Component.onCompleted: {
+        const pages = ["appearance", "windows", "panels", "effects"];
+        sections[Math.max(0, pages.indexOf(initialPage))].trigger();
+    }
 }

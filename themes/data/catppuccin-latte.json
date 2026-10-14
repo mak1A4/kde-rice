@@ -1,0 +1,25 @@
+{
+  "colors": {
+    "view": "#ffffff",
+    "bg": "#eff1f5",
+    "surface": "#ccd0da",
+    "surfaceHover": "#bcc0cc",
+    "surfaceActive": "#acb0be",
+    "fg": "#4c4f69",
+    "fgDim": "#6c6f85",
+    "accent": "#1e66f5",
+    "accentFg": "#eff1f5",
+    "warning": "#df8e1d",
+    "error": "#d20f39",
+    "desktops": ["#1e66f5", "#8839ef", "#ea76cb", "#fe640b", "#40a02b", "#179299", "#df8e1d", "#d20f39"],
+    "terminal": ["#5c5f77", "#d20f39", "#40a02b", "#df8e1d", "#1e66f5", "#ea76cb", "#179299", "#acb0be", "#6c6f85", "#de293e", "#49af3d", "#eea02d", "#456eff", "#fe85d8", "#2d9fa8", "#bcc0cc"],
+    "terminalBackground": "#eff1f5",
+    "terminalForeground": "#4c4f69",
+    "terminalCursor": "#dc8a78",
+    "terminalSelection": "#acb0be"
+  },
+  "apps": {
+    "nvim": "catppuccin-latte",
+    "vscode": "Catppuccin Latte"
+  }
+}

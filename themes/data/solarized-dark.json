@@ -1,0 +1,26 @@
+{
+  "colors": {
+    "view": "#00212b",
+    "bg": "#002b36",
+    "surface": "#073642",
+    "surfaceHover": "#124552",
+    "surfaceActive": "#2a5460",
+    "fg": "#93a1a1",
+    "fgDim": "#839496",
+    "accent": "#268bd2",
+    "accentFg": "#fdf6e3",
+    "warning": "#b58900",
+    "error": "#dc322f",
+    "desktops": ["#268bd2", "#6c71c4", "#d33682", "#cb4b16", "#859900", "#2aa198", "#b58900", "#dc322f"],
+    "terminal": ["#073642", "#dc322f", "#859900", "#b58900", "#268bd2", "#d33682", "#2aa198", "#eee8d5", "#335e69", "#cb4b16", "#586e75", "#657b83", "#839496", "#6c71c4", "#93a1a1", "#fdf6e3"],
+    "terminalBackground": "#002b36",
+    "terminalForeground": "#839496",
+    "terminalCursor": "#839496",
+    "terminalSelection": "#073642"
+  },
+  "apps": {
+    "nvim": "solarized",
+    "vscode": "Solarized Dark",
+    "btop": "solarized_dark"
+  }
+}

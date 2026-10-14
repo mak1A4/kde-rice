@@ -1,0 +1,26 @@
+{
+  "colors": {
+    "view": "#f9f5d7",
+    "bg": "#fbf1c7",
+    "surface": "#ebdbb2",
+    "surfaceHover": "#d5c4a1",
+    "surfaceActive": "#bdae93",
+    "fg": "#3c3836",
+    "fgDim": "#7c6f64",
+    "accent": "#b57614",
+    "accentFg": "#fbf1c7",
+    "warning": "#af3a03",
+    "error": "#9d0006",
+    "desktops": ["#076678", "#8f3f71", "#af3a03", "#79740e", "#427b58", "#b57614", "#9d0006"],
+    "terminal": ["#fbf1c7", "#cc241d", "#98971a", "#d79921", "#458588", "#b16286", "#689d6a", "#7c6f64", "#928374", "#9d0006", "#79740e", "#b57614", "#076678", "#8f3f71", "#427b58", "#3c3836"],
+    "terminalBackground": "#fbf1c7",
+    "terminalForeground": "#3c3836",
+    "terminalCursor": "#3c3836",
+    "terminalSelection": "#d5c4a1"
+  },
+  "apps": {
+    "nvim": "gruvbox",
+    "vscode": "Gruvbox Light Medium",
+    "btop": "gruvbox_light"
+  }
+}

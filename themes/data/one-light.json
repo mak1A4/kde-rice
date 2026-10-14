@@ -1,0 +1,25 @@
+{
+  "colors": {
+    "view": "#fafafa",
+    "bg": "#eaeaeb",
+    "surface": "#dbdbdc",
+    "surfaceHover": "#d3d4d5",
+    "surfaceActive": "#c0c0c3",
+    "fg": "#383a42",
+    "fgDim": "#696c77",
+    "accent": "#526fff",
+    "accentFg": "#ffffff",
+    "warning": "#c18401",
+    "error": "#e45649",
+    "desktops": ["#4078f2", "#a626a4", "#e45649", "#c18401", "#50a14f", "#0184bc", "#986801", "#ca1243"],
+    "terminal": ["#000000", "#de3e35", "#3f953a", "#d2b67c", "#2f5af3", "#950095", "#3f953a", "#bbbbbb", "#000000", "#de3e35", "#3f953a", "#d2b67c", "#2f5af3", "#a00095", "#3f953a", "#ffffff"],
+    "terminalBackground": "#f9f9f9",
+    "terminalForeground": "#2a2c33",
+    "terminalCursor": "#bbbbbb",
+    "terminalSelection": "#ededed"
+  },
+  "apps": {
+    "nvim": "onelight",
+    "vscode": "Atom One Light"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "colors": {
+    "view": "#16161d",
+    "bg": "#1f1f28",
+    "surface": "#2a2a37",
+    "surfaceHover": "#363646",
+    "surfaceActive": "#54546d",
+    "fg": "#dcd7ba",
+    "fgDim": "#c8c093",
+    "accent": "#7e9cd8",
+    "accentFg": "#1f1f28",
+    "warning": "#e6c384",
+    "error": "#e82424",
+    "desktops": ["#7e9cd8", "#957fb8", "#d27e99", "#ffa066", "#98bb6c", "#7aa89f", "#e6c384", "#ff5d62"],
+    "terminal": ["#090618", "#c34043", "#76946a", "#c0a36e", "#7e9cd8", "#957fb8", "#6a9589", "#c8c093", "#727169", "#e82424", "#98bb6c", "#e6c384", "#7fb4ca", "#938aa9", "#7aa89f", "#dcd7ba"],
+    "terminalBackground": "#1f1f28",
+    "terminalForeground": "#dcd7ba",
+    "terminalCursor": "#dcd7ba",
+    "terminalSelection": "#dcd7ba"
+  },
+  "apps": {
+    "nvim": "kanagawa-wave",
+    "vscode": "Kanagawa",
+    "btop": "kanagawa-wave"
+  }
+}
