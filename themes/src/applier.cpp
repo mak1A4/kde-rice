@@ -418,16 +418,18 @@ static KConfigGroup lockGroup()
     return KSharedConfig::openConfig(u"kscreenlockerrc"_s, KConfig::NoGlobals)->group(u"Greeter"_s);
 }
 
-// Leaves `from` as the only file in `dir`, as a link named after the theme:
-// a new name is what the wallpaper takes for a new background. The new link
-// is made before the old one is taken away, so the directory is never empty
-// in between: an empty one means "no background" to the wallpaper.
+// Leaves `from` as the only file in `dir`, as a link named after the theme
+// and the background (`<theme>-<file>`): a new name is what the wallpaper
+// takes for a new background, so two backgrounds of one theme need two
+// names. The new link is made before the old one is taken away, so the
+// directory is never empty in between: an empty one means "no background"
+// to the wallpaper.
 static void fill(const QString &dir, const QString &from, const QString &name)
 {
     QDir().mkpath(dir);
     QString target;
     if (!from.isEmpty()) {
-        target = dir + u'/' + name + u'.' + QFileInfo(from).suffix();
+        target = dir + u'/' + name + u'-' + QFileInfo(from).fileName();
         if (QFileInfo(target).symLinkTarget() != from) {
             QFile::remove(target + ".part"_L1);
             QFile::link(from, target + ".part"_L1);
