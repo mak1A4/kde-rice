@@ -112,7 +112,8 @@ sudo cmake --install build        # the KWin parts only work installed
 
 Or as a package: `cd packaging && makepkg -si`.
 
-Options: `-DKDERICE_APP=OFF`, `-DKDERICE_KWIN_PLUGINS=OFF`,
+Options: `-DKDERICE_APP=OFF`, `-DKDERICE_THEMES=OFF`, `-DKDERICE_LAUNCHER=OFF`,
+`-DKDERICE_GAPS=OFF`, `-DKDERICE_KWIN_PLUGINS=OFF`,
 `-DKDERICE_DECORATION=OFF`. The decoration fetches Breeze's sources for the
 installed Plasma release from download.kde.org; `-DBREEZE_URL=` points it at
 a local archive instead.
