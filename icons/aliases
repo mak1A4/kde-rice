@@ -1,0 +1,5 @@
+# Icon names applications ask for that WhiteSur draws under another name:
+# "<name> <WhiteSur's name>", each made a link to WhiteSur's picture in the
+# app icons. An application that writes its own launcher at every start
+# (Claude: X-Claude-Generated) cannot be pointed at WhiteSur's name.
+claude-desktop claude
