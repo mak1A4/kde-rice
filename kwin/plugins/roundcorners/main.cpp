@@ -6,9 +6,10 @@
 // bar KWin draws keeps the corners the decoration gives it.
 //
 // With kde-rice's Breeze as the decoration (kwin/decoration/breeze), a window that draws
-// its own title bar and has square corners is given that decoration without a
-// title bar instead: the corners, and Breeze's shadow and outline in place of
-// the window's own shadow, which the corners would cut off.
+// its own title bar and has square corners is given KWin's shadow-only
+// decoration (Plasma 6.8's, which kde-rice's Breeze declares it draws): the
+// corners, and Breeze's shadow and outline in place of the window's own
+// shadow, which the corners would cut off, and no title bar.
 //
 // Windows tiled together have no corners where they meet, and no shadow
 // there either, so that they look like one: this works out which sides of
@@ -47,8 +48,9 @@
 
 using namespace KWin;
 
-// read by kde-rice's Breeze, on the window its decoration belongs to
-static const char s_noTitleBar[] = "kdeRiceNoTitleBar";
+// on a window given the shadow-only decoration here, so that only those are
+// given back to the application (not one a window rule gives it)
+static const char s_framed[] = "kdeRiceFramed";
 // the sides joined to another window, as kde-rice's Breeze reads them
 static const char s_joined[] = "kdeRiceJoinedEdges";
 // the corner radius of Breeze's popup frames
@@ -174,20 +176,20 @@ private:
 
     static bool framed(const Window *window)
     {
-        return window->property(s_noTitleBar).toBool();
+        return window->property(s_framed).toBool();
     }
 
     static void setFramed(Window *window, bool framed)
     {
         if (RoundCorners::framed(window) != framed) {
-            window->setProperty(s_noTitleBar, framed);
-            window->setDecorationPolicy(framed ? DecorationPolicy::Server : DecorationPolicy::PreferredByClient);
+            window->setProperty(s_framed, framed);
+            window->setDecorationPolicy(framed ? DecorationPolicy::Shadow : DecorationPolicy::ClientPreference);
         }
     }
 
-    // The decoration without a title bar, for a window with a title bar of
-    // its own and square corners; taken away again when it has corners (or
-    // the decoration is no longer kde-rice's).
+    // The shadow-only decoration, for a window with a title bar of its own
+    // and square corners; taken away again when it has corners (or the
+    // decoration is no longer kde-rice's).
     void frame(Window *window) const
     {
         if (!window->inherits("KWin::XdgToplevelWindow")) {

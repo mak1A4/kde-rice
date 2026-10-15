@@ -7,6 +7,10 @@
     "X-KDE-ConfigModule": "kcm_breezedecoration",
     "org.kde.kdecoration3": {
         "blur": false,
-        "recommendedBorderSize": "None"
+        "recommendedBorderSize": "None",
+        "styles": [
+            "shadow",
+            "titled"
+        ]
     }
 }

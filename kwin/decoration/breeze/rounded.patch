@@ -1,6 +1,6 @@
 diff -ruN a/kdecoration/breezedecoration.cpp b/kdecoration/breezedecoration.cpp
---- a/kdecoration/breezedecoration.cpp	2026-09-08 12:50:45.000000000 +0200
-+++ b/kdecoration/breezedecoration.cpp	2026-10-14 15:24:30.459949908 +0200
+--- a/kdecoration/breezedecoration.cpp
++++ b/kdecoration/breezedecoration.cpp
 @@ -29,11 +29,15 @@
  #include <QDBusMessage>
  #include <QDBusPendingCallWatcher>
@@ -37,7 +37,7 @@ diff -ruN a/kdecoration/breezedecoration.cpp b/kdecoration/breezedecoration.cpp
      }
  }
  
-@@ -243,7 +253,8 @@
+@@ -244,7 +254,8 @@
      connect(window(), &KDecoration3::DecoratedWindow::adjacentScreenEdgesChanged, this, &Decoration::updateTitleBar);
      connect(window(), &KDecoration3::DecoratedWindow::widthChanged, this, &Decoration::updateTitleBar);
      connect(window(), &KDecoration3::DecoratedWindow::maximizedChanged, this, &Decoration::updateTitleBar);
@@ -47,7 +47,7 @@ diff -ruN a/kdecoration/breezedecoration.cpp b/kdecoration/breezedecoration.cpp
  
      connect(window(), &KDecoration3::DecoratedWindow::widthChanged, this, &Decoration::updateButtonsGeometry);
      connect(window(), &KDecoration3::DecoratedWindow::maximizedChanged, this, &Decoration::updateButtonsGeometry);
-@@ -252,12 +263,88 @@
+@@ -253,12 +264,88 @@
  
      connect(window(), &KDecoration3::DecoratedWindow::nextScaleChanged, this, &Decoration::updateScale);
  
@@ -136,27 +136,45 @@ diff -ruN a/kdecoration/breezedecoration.cpp b/kdecoration/breezedecoration.cpp
  void Decoration::updateTitleBar()
  {
      // The titlebar rect has margins around it so the window can be resized by dragging a decoration edge.
-@@ -443,20 +530,17 @@
-             topLeftRightRadius = m_scaledCornerRadius;
-         }
+@@ -444,35 +531,24 @@
  
-+        // kde-rice: windows are kept away from the screen's edges,
-+        // so a maximized or tiled window has its corners like any other
-         if (hasNoBorders()) {
--            if (!isBottomEdge()) {
+     setResizeOnlyBorders(QMarginsF(extSides, extTop, extSides, extBottom));
+ 
+-    const bool isTiled = isTopEdge() || isLeftEdge() || isBottomEdge() || isRightEdge();
+-
+     qreal topLeftRadius = 0;
+     qreal topRightRadius = 0;
+     qreal bottomLeftRadius = 0;
+     qreal bottomRightRadius = 0;
+-    if (!isTiled && hasNoBorders() && m_internalSettings->roundedCorners()) {
+-        if (!isBottomEdge()) {
+-            if (!isLeftEdge()) {
+-                bottomLeftRadius = m_scaledCornerRadius;
+-            }
+-            if (!isRightEdge()) {
+-                bottomRightRadius = m_scaledCornerRadius;
+-            }
+-        }
++    // kde-rice: windows are kept away from the screen's edges,
++    // so a maximized or tiled window has its corners like any other
++    if (hasNoBorders() && m_internalSettings->roundedCorners()) {
++        bottomLeftRadius = m_scaledCornerRadius;
++        bottomRightRadius = m_scaledCornerRadius;
+         if (hideTitleBar()) {
+-            if (!isTopEdge()) {
 -                if (!isLeftEdge()) {
--                    bottomLeftRadius = m_scaledCornerRadius;
+-                    topLeftRadius = m_scaledCornerRadius;
 -                }
 -                if (!isRightEdge()) {
--                    bottomRightRadius = m_scaledCornerRadius;
+-                    topRightRadius = m_scaledCornerRadius;
 -                }
 -            }
-+            bottomLeftRadius = m_scaledCornerRadius;
-+            bottomRightRadius = m_scaledCornerRadius;
++            topLeftRadius = m_scaledCornerRadius;
++            topRightRadius = m_scaledCornerRadius;
          }
      }
--    setBorderRadius(KDecoration3::BorderRadius(topLeftRightRadius, topLeftRightRadius, bottomRightRadius, bottomLeftRadius));
-+    setBorderRadius(joinedRadius(topLeftRightRadius, topLeftRightRadius, bottomRightRadius, bottomLeftRadius));
+-    setBorderRadius(KDecoration3::BorderRadius(topLeftRadius, topRightRadius, bottomRightRadius, bottomLeftRadius));
++    setBorderRadius(joinedRadius(topLeftRadius, topRightRadius, bottomRightRadius, bottomLeftRadius));
  
 -    if (isMaximized() || !outlinesEnabled()) {
 +    // kde-rice: the outline also around a maximized window
@@ -164,7 +182,17 @@ diff -ruN a/kdecoration/breezedecoration.cpp b/kdecoration/breezedecoration.cpp
          setBorderOutline(KDecoration3::BorderOutline());
      } else {
          const auto color = KColorUtils::mix(window()->color(window()->isActive() ? ColorGroup::Active : ColorGroup::Inactive, ColorRole::Frame),
-@@ -475,7 +559,7 @@
+@@ -483,15 +559,15 @@
+         qreal topLeftRightRadius = 0;
+         qreal bottomLeftRadius = 0;
+         qreal bottomRightRadius = 0;
+-        if (!isTiled && (!hideTitleBar() || m_internalSettings->roundedCorners())) {
++        if (!hideTitleBar() || m_internalSettings->roundedCorners()) {
+             topLeftRightRadius = m_scaledCornerRadius;
+         }
+-        if (!isTiled && (!hasNoBorders() || m_internalSettings->roundedCorners())) {
++        if (!hasNoBorders() || m_internalSettings->roundedCorners()) {
+             bottomLeftRadius = m_scaledCornerRadius;
              bottomRightRadius = m_scaledCornerRadius;
          }
  
@@ -173,8 +201,21 @@ diff -ruN a/kdecoration/breezedecoration.cpp b/kdecoration/breezedecoration.cpp
          setBorderOutline(KDecoration3::BorderOutline(thickness, color, radius));
      }
  }
-@@ -586,7 +670,8 @@
-             if (hasNoBorders()) {
+@@ -585,7 +661,6 @@
+ {
+     // TODO: optimize based on repaintRegion
+     auto s = settings();
+-    const bool isTiled = isTopEdge() || isLeftEdge() || isBottomEdge() || isRightEdge();
+     // paint background
+     if (!window()->isShaded()) {
+         painter->fillRect(rect(), Qt::transparent);
+@@ -600,10 +675,12 @@
+         }
+ 
+         if (s->isAlphaChannelSupported()) {
+-            if (hasNoBorders() || isTiled) {
++            // kde-rice: corners also when tiled
++            if (hasNoBorders()) {
                  painter->drawRoundedRect(rect(), 0, 0);
              } else {
 -                painter->drawRoundedRect(rect(), m_scaledCornerRadius, m_scaledCornerRadius);
@@ -183,12 +224,20 @@ diff -ruN a/kdecoration/breezedecoration.cpp b/kdecoration/breezedecoration.cpp
              }
          } else {
              painter->drawRect(rect());
-@@ -640,26 +725,27 @@
+@@ -635,7 +712,6 @@
+     QRectF rect(QPointF(0, 0), QSizeF(size().width(), borderTop()));
+     QBrush frontBrush;
+     QBrush backBrush(this->titleBarColor());
+-    const bool isTiled = isTopEdge() || isLeftEdge() || isBottomEdge() || isRightEdge();
+ 
+     if (!rect.intersects(repaintRegion)) {
+         return;
+@@ -658,26 +734,27 @@
          painter->setBrush(titleBarColor());
      }
  
--    if (isMaximized() || !settings()->isAlphaChannelSupported()) {
-+    // kde-rice: rounded also when maximized
+-    if (isMaximized() || isTiled || !settings()->isAlphaChannelSupported()) {
++    // kde-rice: rounded also when maximized or tiled
 +    if (!settings()->isAlphaChannelSupported()) {
          painter->setBrush(backBrush);
          painter->drawRect(rect);
@@ -217,7 +266,7 @@ diff -ruN a/kdecoration/breezedecoration.cpp b/kdecoration/breezedecoration.cpp
          };
  
          painter->setBrush(backBrush);
-@@ -768,19 +854,31 @@
+@@ -786,19 +863,31 @@
  
      // Animated case, no cached shadow object
      if ((m_shadowAnimation->state() == QAbstractAnimation::Running) && (m_shadowOpacity != 0.0) && (m_shadowOpacity != 1.0)) {
@@ -250,7 +299,7 @@ diff -ruN a/kdecoration/breezedecoration.cpp b/kdecoration/breezedecoration.cpp
      auto &shadow = (window()->isActive()) ? g_sShadow : g_sShadowInactive;
      if (!shadow) {
          g_sShadow = createShadowObject(1.0);
-@@ -790,7 +888,7 @@
+@@ -808,7 +897,7 @@
  }
  
  //________________________________________________________________
@@ -259,7 +308,7 @@ diff -ruN a/kdecoration/breezedecoration.cpp b/kdecoration/breezedecoration.cpp
  {
      CompositeShadowParams params = lookupShadowParams(m_internalSettings->shadowSize());
      if (params.isNone()) {
-@@ -842,8 +940,44 @@
+@@ -860,8 +949,44 @@
  
      painter.end();
  
@@ -305,7 +354,7 @@ diff -ruN a/kdecoration/breezedecoration.cpp b/kdecoration/breezedecoration.cpp
      ret->setInnerShadowRect(QRectF(outerRect.center(), QSizeF(1, 1)));
      ret->setShadow(shadowTexture);
      return ret;
-@@ -854,7 +988,18 @@
+@@ -872,7 +997,18 @@
      // On X11, the smallSpacing value is used for scaling.
      // On Wayland, this value has constant factor of 2.
      // Removing it will break radius scaling on X11.
@@ -326,8 +375,8 @@ diff -ruN a/kdecoration/breezedecoration.cpp b/kdecoration/breezedecoration.cpp
  
  void Decoration::updateScale()
 diff -ruN a/kdecoration/breezedecoration.h b/kdecoration/breezedecoration.h
---- a/kdecoration/breezedecoration.h	2026-09-08 12:50:45.000000000 +0200
-+++ b/kdecoration/breezedecoration.h	2026-10-14 15:24:10.528472059 +0200
+--- a/kdecoration/breezedecoration.h
++++ b/kdecoration/breezedecoration.h
 @@ -16,6 +16,7 @@
  
  #include <QPalette>
@@ -356,16 +405,3 @@ diff -ruN a/kdecoration/breezedecoration.h b/kdecoration/breezedecoration.h
      //*@name border size
      //@{
      qreal borderSize(bool bottom, qreal scale) const;
-@@ -200,6 +210,12 @@
- 
- bool Decoration::hideTitleBar() const
- {
-+    // kde-rice: a window that draws its own title bar and was given
-+    // this decoration for its corners, shadow and outline (kwin/plugins/roundcorners
-+    // says which, on the window, which is the decoration's parent)
-+    if (parent() && parent()->property("kdeRiceNoTitleBar").toBool()) {
-+        return true;
-+    }
-     return m_internalSettings->hideTitleBar() && !window()->isShaded();
- }
- 
