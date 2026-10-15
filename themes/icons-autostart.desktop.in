@@ -7,3 +7,5 @@ Icon=preferences-desktop-icons
 NoDisplay=true
 OnlyShowIn=KDE;
 X-KDE-autostart-phase=0
+# with systemd, run before Plasma starts instead (plasma-plasmashell.service.d)
+X-systemd-skip=true

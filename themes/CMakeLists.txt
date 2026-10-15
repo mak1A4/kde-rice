@@ -41,6 +41,10 @@ install(DIRECTORY templates/ DESTINATION ${KDE_INSTALL_DATADIR}/kde-rice/templat
 install(DIRECTORY wallpaper/ DESTINATION ${KDE_INSTALL_DATADIR}/plasma/wallpapers/${KDERICE_ID}.background)
 
 # at login: the icon theme written again, for the icons of applications
-# installed since (IconStore::write trims those only hicolor has)
+# installed since (IconStore::write trims those only hicolor has); before
+# Plasma starts, by a drop-in for its systemd unit, and by the autostart
+# entry where Plasma is started without systemd
+configure_file(icons-plasmashell.conf.in ${CMAKE_CURRENT_BINARY_DIR}/${KDERICE_ID}.icons.conf @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${KDERICE_ID}.icons.conf DESTINATION ${KDE_INSTALL_SYSTEMDUSERUNITDIR}/plasma-plasmashell.service.d)
 configure_file(icons-autostart.desktop.in ${CMAKE_CURRENT_BINARY_DIR}/${KDERICE_ID}.icons.desktop @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${KDERICE_ID}.icons.desktop DESTINATION ${KDE_INSTALL_AUTOSTARTDIR})

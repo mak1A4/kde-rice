@@ -399,7 +399,10 @@ void use()
 // Plasma (the desktop and the panels; the windows stay) restarted in two
 // seconds, by a timer of systemd's under one name: changes close together
 // (several icons set one after the other) are one restart, where a restart
-// each would run into systemd's limit and leave Plasma stopped.
+// each would run into systemd's limit and leave Plasma stopped. Changes
+// further apart (themes tried one after the other) are restarts of their
+// own, so the limit's count is cleared first (reset-failed does), where the
+// fourth in a minute left Plasma stopped, a black screen under the windows.
 static void restartPlasma()
 {
     // (a restart already waiting: systemd says so, and that one is it; not
@@ -407,13 +410,14 @@ static void restartPlasma()
     QProcess process;
     process.setProgram(u"systemd-run"_s);
     process.setArguments({u"--user"_s, u"--quiet"_s, u"--on-active=2"_s, u"--unit=kde-rice-plasma-restart"_s, u"--timer-property=AccuracySec=100ms"_s,
-                          u"systemctl"_s, u"--user"_s, u"restart"_s, u"plasma-plasmashell.service"_s});
+                          u"/bin/sh"_s, u"-c"_s,
+                          u"systemctl --user reset-failed plasma-plasmashell.service; systemctl --user restart plasma-plasmashell.service"_s});
     process.setStandardOutputFile(QProcess::nullDevice());
     process.setStandardErrorFile(QProcess::nullDevice());
     process.startDetached();
 }
 
-void reload()
+void reload(bool restart)
 {
     // what plasma-changeicons does: the shared cache of drawn icons goes,
     // and every running KDE application is told to draw its icons again
@@ -433,7 +437,9 @@ void reload()
         QDBusMessage::createMethodCall(u"org.freedesktop.DBus"_s, u"/org/freedesktop/DBus"_s, u"org.freedesktop.DBus"_s, u"GetId"_s));
     if (s_replaced) {
         s_replaced = false;
-        restartPlasma();
+        if (restart) {
+            restartPlasma();
+        }
     }
 }
 

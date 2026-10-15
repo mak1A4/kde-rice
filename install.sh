@@ -86,6 +86,10 @@ sudo sh -c '
     [ -z "$login" ] || /usr/lib/kde-rice/login-screen
 ' sh "$papirus" "$login" "$package" ${icon_package:+"$icon_package"}
 
+# the session's systemd reads the package's units again (the icon theme
+# written before Plasma starts: a drop-in for its unit)
+systemctl --user daemon-reload
+
 # kde-rice's Plasma style, if it is the one in use, made again by the new
 # build
 if [ "$(kreadconfig6 --file plasmarc --group Theme --key name)" = kde-rice ]; then

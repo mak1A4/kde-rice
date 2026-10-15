@@ -33,8 +33,10 @@ bool inUse();
 void use();
 // KDE's applications draw their icons again (after a change of the theme);
 // after a picture was replaced under an icon name already drawn, Plasma is
-// restarted (its desktop and panels), as nothing else makes it let go of it
-void reload();
+// restarted (its desktop and panels), as nothing else makes it let go of it;
+// not when restartPlasma is false (Plasma not started yet: it will draw the
+// new pictures from the start)
+void reload(bool restartPlasma = true);
 
 
 struct Theme {

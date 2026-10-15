@@ -1,0 +1,6 @@
+# kde-rice: its icon theme written again before Plasma starts, for the
+# icons of applications installed since, so that Plasma draws the new
+# pictures from the start (run after it, a change restarted it). Not
+# needed for Plasma to start: a failure is ignored.
+[Service]
+ExecStartPre=-@KDE_INSTALL_FULL_BINDIR@/kde-rice-theme icons refresh --before-plasma
