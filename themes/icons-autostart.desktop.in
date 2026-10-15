@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=kde-rice icons
+Comment=kde-rice's icon theme written again, for applications installed since: their icons trimmed like the rest
+Exec=kde-rice-theme icons refresh
+Icon=preferences-desktop-icons
+NoDisplay=true
+OnlyShowIn=KDE;
+X-KDE-autostart-phase=0

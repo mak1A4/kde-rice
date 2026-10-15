@@ -145,6 +145,12 @@ colour) and kde-rice's own glyphs (`icons/glyphs`: the launcher's K, in
 KDE's blue, darker on a light panel and lighter on a dark one; the weather
 applet's cloud before it is set up; the tray's microphone), which come below
 yours and above the base's.
+An application's icon that no theme but hicolor has, or that it puts among
+the pixmaps (ChatGPT's), is drawn with the margin its maker gave it, smaller
+than the base's beside it: trimmed copies, filling their canvas as
+kde-rice-whitesur's do, are in `~/.local/share/icons/kde-rice/trimmed`,
+below your own pictures; made again when the theme is written, at login for
+applications installed since, or with `kde-rice-theme icons refresh`.
 The Show Desktop applet draws its icon larger than the tray's; a glyph the
 size of theirs is `kde-rice-show-desktop`, set as the applet's icon with
 `qdbus6 org.kde.plasmashell /PlasmaShell evaluateScript 'for (const p of
@@ -183,7 +189,7 @@ icon name. A glyph of kde-rice's own goes in `icons/tray/<app>.svg` (and
 `<app>-attention.svg`), drawn in `.ColorScheme-Text`: it is installed as
 `kde-rice-<app>-tray` and coloured with the theme like the tray's other icons.
 
-From a terminal: `kde-rice-theme icons use | base <theme> | set <name> <file>
+From a terminal: `kde-rice-theme icons use | base <theme> | refresh | set <name> <file>
 | reset <name> | find <name>`.
 
 kde-rice-whitesur is WhiteSur, built by kde-rice from WhiteSur's released

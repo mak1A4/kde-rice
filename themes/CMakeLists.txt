@@ -39,3 +39,8 @@ target_link_libraries(kde-rice-trim-icons PRIVATE Qt6::Gui PkgConfig::RSVG)
 install(DIRECTORY data/ DESTINATION ${KDE_INSTALL_DATADIR}/kde-rice/themes)
 install(DIRECTORY templates/ DESTINATION ${KDE_INSTALL_DATADIR}/kde-rice/templates)
 install(DIRECTORY wallpaper/ DESTINATION ${KDE_INSTALL_DATADIR}/plasma/wallpapers/${KDERICE_ID}.background)
+
+# at login: the icon theme written again, for the icons of applications
+# installed since (IconStore::write trims those only hicolor has)
+configure_file(icons-autostart.desktop.in ${CMAKE_CURRENT_BINARY_DIR}/${KDERICE_ID}.icons.desktop @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${KDERICE_ID}.icons.desktop DESTINATION ${KDE_INSTALL_AUTOSTARTDIR})

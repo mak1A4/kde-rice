@@ -3,6 +3,7 @@
 #include "trim.h"
 
 #include <KConfigGroup>
+#include <KDesktopFile>
 #include <KIconLoader>
 #include <KSharedConfig>
 #include <KSharedDataCache>
@@ -314,6 +315,8 @@ static bool tint(const QString &theme, const QString &colour, const QString &lau
     return true;
 }
 
+static bool trimFallbacks(const QStringList &themes);
+
 bool write(const QString &mode)
 {
     QDir().mkpath(overridesDir());
@@ -339,6 +342,10 @@ bool write(const QString &mode)
         // Plasma lets go of the icons it has drawn only when it restarts
         s_replaced = true;
     }
+    if (trimFallbacks(inherits)) {
+        changed = true;
+        s_replaced = true;
+    }
     QStringList directories;
     QString sections;
     if (!tintedDirs.isEmpty()) {
@@ -347,6 +354,10 @@ bool write(const QString &mode)
     }
     directories += u"overrides"_s;
     sections += u"\n[overrides]\nSize=64\nMinSize=8\nMaxSize=512\nType=Scalable\nContext=Applications\n"_s;
+    if (QFileInfo(themeDir() + "/trimmed"_L1).isDir()) {
+        directories += u"trimmed"_s;
+        sections += u"\n[trimmed]\nSize=64\nMinSize=8\nMaxSize=512\nType=Scalable\nContext=Applications\n"_s;
+    }
     for (const auto &[dir, entries] : std::as_const(tintedDirs)) {
         directories += "tinted/"_L1 + dir;
         sections += u"\n[tinted/%1]\n"_s.arg(dir);
@@ -528,6 +539,130 @@ QStringList names(const QString &theme)
     QStringList all = indexOf(theme).files.keys();
     all.sort();
     return all;
+}
+
+// A theme and all it inherits, but hicolor: where KDE looks for an icon
+// before it falls back to hicolor and the pixmaps.
+static void addChain(const QString &theme, QStringList &chain)
+{
+    if (theme == "hicolor"_L1 || chain.contains(theme) || !exists(theme)) {
+        return;
+    }
+    chain += theme;
+    KConfig index(themePath(theme) + "/index.theme"_L1, KConfig::SimpleConfig);
+    const QStringList parents = index.group(u"Icon Theme"_s).readEntry("Inherits", QStringList());
+    for (const QString &parent : parents) {
+        addChain(parent, chain);
+    }
+}
+
+// the icon names the installed applications' menu entries give
+static QStringList appIconNames()
+{
+    QStringList names;
+    static const QRegularExpression extension(u"\\.(png|svgz?|xpm)$"_s);
+    const QStringList dirs = QStandardPaths::standardLocations(QStandardPaths::ApplicationsLocation);
+    for (const QString &dir : dirs) {
+        QDirIterator entries(dir, {u"*.desktop"_s}, QDir::Files, QDirIterator::Subdirectories);
+        while (entries.hasNext()) {
+            QString icon = KDesktopFile(entries.next()).readIcon();
+            // a picture named by its path is no theme's (the hub gives such an
+            // entry an icon name of its own)
+            if (icon.isEmpty() || icon.contains(u'/')) {
+                continue;
+            }
+            names += icon.remove(extension);
+        }
+    }
+    names.removeDuplicates();
+    names.sort();
+    return names;
+}
+
+// App icons that no theme but hicolor has, and the pictures applications put
+// among the pixmaps (ChatGPT's): drawn as their makers drew them, most with
+// a margin round the tile, smaller than kde-rice-whitesur's trimmed ones
+// beside them in a panel. Trimmed copies (trim.h) in the theme's own
+// directory ("trimmed"), after the user's pictures; made again only when
+// the applications, their pictures or the themes looked in change. True if
+// that changed them.
+static bool trimFallbacks(const QStringList &themes)
+{
+    const QString dir = themeDir() + "/trimmed"_L1;
+    QStringList chain;
+    for (const QString &theme : themes) {
+        addChain(theme, chain);
+    }
+    // the directories of icons of those themes
+    QStringList lookIn;
+    for (const QString &theme : std::as_const(chain)) {
+        KConfig index(themePath(theme) + "/index.theme"_L1, KConfig::SimpleConfig);
+        const KConfigGroup group = index.group(u"Icon Theme"_s);
+        const QStringList dirs = group.readEntry("Directories", QStringList()) + group.readEntry("ScaledDirectories", QStringList());
+        for (const QString &root : themePaths(theme)) {
+            for (const QString &sub : dirs) {
+                if (!lookIn.contains(root + u'/' + sub) && QFileInfo(root + u'/' + sub).isDir()) {
+                    lookIn += root + u'/' + sub;
+                }
+            }
+        }
+    }
+    // hicolor and the pixmaps read again: an application may have come since
+    {
+        QMutexLocker locker(&s_lock);
+        s_indexes.remove(u"hicolor"_s);
+    }
+    const QStringList own = overrides();
+    QList<std::pair<QString, QString>> found;
+    // the version of how the copies are made: a newer kde-rice makes them again
+    QString stamp = u"1|"_s + chain.join(u',');
+    const QStringList names = appIconNames();
+    for (const QString &name : names) {
+        if (own.contains(name)) {
+            continue;
+        }
+        const bool themed = std::any_of(lookIn.cbegin(), lookIn.cend(), [&name](const QString &path) {
+            return QFileInfo::exists(path + u'/' + name + ".svg"_L1) || QFileInfo::exists(path + u'/' + name + ".png"_L1)
+                || QFileInfo::exists(path + u'/' + name + ".svgz"_L1);
+        });
+        if (themed) {
+            continue;
+        }
+        const QString picture = file(u"hicolor"_s, name);
+        if (!picture.endsWith(".svg"_L1) && !picture.endsWith(".png"_L1)) {
+            continue;
+        }
+        const QFileInfo info(picture);
+        found += {name, picture};
+        stamp += u'|' + name + u':' + picture + u':' + QString::number(info.size()) + u':' + QString::number(info.lastModified().toSecsSinceEpoch());
+    }
+    QFile current(dir + u'/' + s_stamp);
+    if (current.open(QIODevice::ReadOnly) && QString::fromUtf8(current.readAll()) == stamp) {
+        return false;
+    }
+    current.close();
+    QDir(dir).removeRecursively();
+    QDir().mkpath(dir);
+    for (const auto &[name, picture] : std::as_const(found)) {
+        if (picture.endsWith(".svg"_L1)) {
+            QFile in(picture);
+            const auto trimmed = in.open(QIODevice::ReadOnly) ? IconTrim::trimmed(in.readAll()) : std::nullopt;
+            // (one that fills its canvas already is found in hicolor as it is)
+            if (trimmed) {
+                writeFile(dir + u'/' + name + ".svg"_L1, *trimmed);
+            }
+        } else {
+            const QString target = dir + u'/' + name + ".png"_L1;
+            if (QFile::copy(picture, target)) {
+                QFile::setPermissions(target, QFile::ReadOwner | QFile::WriteOwner | QFile::ReadGroup | QFile::ReadOther);
+                if (!IconTrim::trimFile(target)) {
+                    QFile::remove(target);
+                }
+            }
+        }
+    }
+    writeFile(dir + u'/' + s_stamp, stamp.toUtf8());
+    return true;
 }
 
 QString overrideFor(const QString &name)

@@ -11,6 +11,8 @@
 //   kde-rice-theme values [<theme>]         what the templates are filled in with
 //   kde-rice-theme icons use                kde-rice's icon theme in use
 //   kde-rice-theme icons base [<theme>]     its base theme (shown, or set)
+//   kde-rice-theme icons refresh            written again: app icons only hicolor or
+//                                           the pixmaps have trimmed (at login)
 //   kde-rice-theme icons set <name> <file> [--trim]
 //                                           your own picture for an icon name (an
 //                                           app icon trimmed to fill its canvas)
@@ -138,6 +140,12 @@ int main(int argc, char *argv[])
                 }
             }
             out << IconStore::base() << "\t" << IconStore::baseFor(mode) << "\n";
+            return 0;
+        }
+        if (what == "refresh"_L1) {
+            if (IconStore::write(mode) && IconStore::inUse()) {
+                IconStore::reload();
+            }
             return 0;
         }
         if (what == "trim"_L1 && !arguments.isEmpty()) {
