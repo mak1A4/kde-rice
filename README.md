@@ -149,8 +149,11 @@ An application's icon that no theme but hicolor has, or that it puts among
 the pixmaps (ChatGPT's), is drawn with the margin its maker gave it, smaller
 than the base's beside it: trimmed copies, filling their canvas as
 kde-rice-whitesur's do, are in `~/.local/share/icons/kde-rice/trimmed`,
-below your own pictures; made again when the theme is written, at login for
-applications installed since, or with `kde-rice-theme icons refresh`.
+below your own pictures; made again when the theme is written, at login and
+when the hub's Icons page opens for applications installed since, or with
+`kde-rice-theme icons refresh`. The Icons page marks those apps "trimmed" and
+has a switch to leave them as they are (`[Icons] TrimFallbacks` in
+`kde-ricerc`).
 The Show Desktop applet draws its icon larger than the tray's; a glyph the
 size of theirs is `kde-rice-show-desktop`, set as the applet's icon with
 `qdbus6 org.kde.plasmashell /PlasmaShell evaluateScript 'for (const p of

@@ -58,6 +58,13 @@ QString overrideFor(const QString &name);
 // icon's SVG made to fill its canvas as kde-rice-whitesur's are (trim.h).
 // False if it cannot.
 bool setOverride(const QString &name, const QString &picture, bool trim = false);
+// kde-rice's trimmed copy of an app icon only hicolor or the pixmaps have
+// (drawn with its maker's margin otherwise), "" if there is none
+QString trimmedFor(const QString &name);
+// whether those are trimmed (`[Icons] TrimFallbacks`, on by default); the
+// theme is to be written again after a change
+bool trimsFallbacks();
+void setTrimsFallbacks(bool trim);
 // Trims an icon of the user's own (SVG or PNG). True if that changed it.
 bool trimOverride(const QString &name);
 void removeOverride(const QString &name);

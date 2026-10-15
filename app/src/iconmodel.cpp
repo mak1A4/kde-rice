@@ -83,12 +83,40 @@ void IconModel::setBase(const QString &theme)
     bump();
 }
 
+bool IconModel::trimFallbacks() const
+{
+    return IconStore::trimsFallbacks();
+}
+
+void IconModel::setTrimFallbacks(bool trim)
+{
+    if (trim == IconStore::trimsFallbacks()) {
+        return;
+    }
+    IconStore::setTrimsFallbacks(trim);
+    refresh();
+    bump();
+}
+
+void IconModel::refresh()
+{
+    if (IconStore::write(mode()) && IconStore::inUse()) {
+        IconStore::reload();
+        bump();
+    }
+}
+
 QUrl IconModel::current(const QString &name) const
 {
     if (name.startsWith(u'/')) {
         return QUrl::fromLocalFile(name);
     }
+    // where the icon theme finds it: the user's picture, kde-rice's trimmed
+    // copy, then the base's and the rest
     QString path = IconStore::overrideFor(name);
+    if (path.isEmpty() && IconStore::inUse()) {
+        path = IconStore::trimmedFor(name);
+    }
     for (const QString &theme : {baseVariant(), base(), u"Papirus"_s, u"breeze"_s, u"hicolor"_s}) {
         if (!path.isEmpty()) {
             break;
@@ -107,6 +135,11 @@ QUrl IconModel::current(const QString &name) const
 bool IconModel::overridden(const QString &name) const
 {
     return !IconStore::overrideFor(name).isEmpty();
+}
+
+bool IconModel::trimmed(const QString &name) const
+{
+    return IconStore::inUse() && IconStore::overrideFor(name).isEmpty() && !IconStore::trimmedFor(name).isEmpty();
 }
 
 QVariantList IconModel::candidates(const QString &name) const

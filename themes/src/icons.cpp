@@ -54,6 +54,12 @@ QString overridesDir()
     return QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/kde-rice/icons"_L1;
 }
 
+// trimmed copies of app icons only hicolor or the pixmaps have (trimFallbacks)
+static QString trimmedDir()
+{
+    return themeDir() + "/trimmed"_L1;
+}
+
 // kde-rice's own one-colour glyphs (icons/glyphs: the launcher's K, the
 // weather applet's cloud), used like the user's own pictures, below theirs
 static QString glyphsDir()
@@ -354,7 +360,7 @@ bool write(const QString &mode)
     }
     directories += u"overrides"_s;
     sections += u"\n[overrides]\nSize=64\nMinSize=8\nMaxSize=512\nType=Scalable\nContext=Applications\n"_s;
-    if (QFileInfo(themeDir() + "/trimmed"_L1).isDir()) {
+    if (QFileInfo(trimmedDir()).isDir()) {
         directories += u"trimmed"_s;
         sections += u"\n[trimmed]\nSize=64\nMinSize=8\nMaxSize=512\nType=Scalable\nContext=Applications\n"_s;
     }
@@ -586,9 +592,38 @@ static QStringList appIconNames()
 // directory ("trimmed"), after the user's pictures; made again only when
 // the applications, their pictures or the themes looked in change. True if
 // that changed them.
+bool trimsFallbacks()
+{
+    return settings().readEntry("TrimFallbacks", true);
+}
+
+void setTrimsFallbacks(bool trim)
+{
+    KConfigGroup group = settings();
+    group.writeEntry("TrimFallbacks", trim, KConfig::Notify);
+    group.sync();
+}
+
+QString trimmedFor(const QString &name)
+{
+    for (const auto *suffix : {".svg", ".png"}) {
+        const QString path = trimmedDir() + u'/' + name + QString::fromLatin1(suffix);
+        if (QFileInfo::exists(path)) {
+            return path;
+        }
+    }
+    return {};
+}
+
 static bool trimFallbacks(const QStringList &themes)
 {
-    const QString dir = themeDir() + "/trimmed"_L1;
+    const QString dir = trimmedDir();
+    // turned off: the pictures as their makers drew them again
+    if (!trimsFallbacks()) {
+        const bool had = QFileInfo(dir).isDir();
+        QDir(dir).removeRecursively();
+        return had;
+    }
     QStringList chain;
     for (const QString &theme : themes) {
         addChain(theme, chain);

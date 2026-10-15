@@ -15,6 +15,9 @@ FormCard.FormCardPage {
 
     IconModel {
         id: icons
+        // applications installed since the theme was last written: their
+        // icons trimmed now, not only at the next login
+        Component.onCompleted: refresh()
     }
 
     IconPicker {
@@ -67,7 +70,8 @@ FormCard.FormCardPage {
                     text: {
                         icons.revision;
                         return row.fixed ? i18n("a fixed picture: changing it gives the app an icon of its own")
-                                         : row.iconName + (icons.overridden(row.iconName) ? i18n(" · yours") : "");
+                                         : row.iconName + (icons.overridden(row.iconName) ? i18n(" · yours")
+                                                         : icons.trimmed(row.iconName) ? i18n(" · trimmed") : "");
                     }
                     font: Kirigami.Theme.smallFont
                     color: Kirigami.Theme.disabledTextColor
@@ -106,6 +110,15 @@ FormCard.FormCardPage {
             valueRole: "id"
             Component.onCompleted: currentIndex = indexOfValue(icons.base)
             onActivated: icons.setBase(currentValue)
+        }
+
+        FormCard.FormDelegateSeparator {}
+
+        FormCard.FormSwitchDelegate {
+            text: i18n("Trim icons no theme has")
+            description: i18n("Apps whose icon only hicolor or the pixmaps have, drawn with a margin of their own, made to fill their square like the base theme's.")
+            checked: icons.trimFallbacks
+            onToggled: icons.trimFallbacks = checked
         }
 
         FormCard.FormDelegateSeparator {}

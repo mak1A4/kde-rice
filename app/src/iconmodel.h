@@ -22,6 +22,8 @@ class IconModel : public QObject
     Q_PROPERTY(bool whiteSurInstalled READ whiteSurInstalled CONSTANT)
     Q_PROPERTY(QVariantList taskbar READ taskbar NOTIFY changed)
     Q_PROPERTY(QStringList overrides READ overrides NOTIFY changed)
+    // app icons only hicolor or the pixmaps have, trimmed like the base's
+    Q_PROPERTY(bool trimFallbacks READ trimFallbacks WRITE setTrimFallbacks NOTIFY changed)
     // goes up at every change, for pictures to be loaded again
     Q_PROPERTY(int revision MEMBER m_revision NOTIFY changed)
     Q_PROPERTY(bool searching MEMBER m_searching NOTIFY searchingChanged)
@@ -36,12 +38,19 @@ public:
     bool whiteSurInstalled() const;
     QVariantList taskbar() const;
     QStringList overrides() const;
+    bool trimFallbacks() const;
+    void setTrimFallbacks(bool trim);
 
     Q_INVOKABLE void use();
+    // the theme written again, for applications installed since (their
+    // icons trimmed), and drawn again if that changed it
+    Q_INVOKABLE void refresh();
     Q_INVOKABLE void setBase(const QString &theme);
     // the picture an icon name is drawn with now, as a URL ("" if none)
     Q_INVOKABLE QUrl current(const QString &name) const;
     Q_INVOKABLE bool overridden(const QString &name) const;
+    // whether it is drawn with kde-rice's trimmed copy (IconStore::trimmedFor)
+    Q_INVOKABLE bool trimmed(const QString &name) const;
     // [{ theme, themeName, url }] for an icon name, every installed theme's
     Q_INVOKABLE QVariantList candidates(const QString &name) const;
     // icon names containing `text`, answered by searchFinished
