@@ -154,6 +154,14 @@ static QString textColour()
     return theme ? theme->color(u"fg"_s).name() : QString();
 }
 
+// the colour of the launcher's glyph (the user's own start-here picture):
+// KDE's blue on a light panel, where the text colour is a dark one and the
+// K wants its own colour; the text colour on a dark one, where that is pale
+static QString launcherColour(const QString &mode, const QString &text)
+{
+    return mode == "dark"_L1 ? text : u"#1d99f3"_s;
+}
+
 // a base theme's directories of status icons, with their index entries
 static QList<std::pair<QString, QHash<QString, QString>>> statusDirs(const QString &theme)
 {
@@ -181,7 +189,7 @@ static QList<std::pair<QString, QHash<QString, QString>>> statusDirs(const QStri
     return found;
 }
 
-static bool tint(const QString &theme, const QString &colour, QList<std::pair<QString, QHash<QString, QString>>> &dirs)
+static bool tint(const QString &theme, const QString &colour, const QString &launcher, QList<std::pair<QString, QHash<QString, QString>>> &dirs)
 {
     const QString tinted = themeDir() + "/tinted"_L1;
     dirs.clear();
@@ -191,7 +199,7 @@ static bool tint(const QString &theme, const QString &colour, QList<std::pair<QS
     // the user's own one-colour pictures are part of it (they are coloured
     // too); their other pictures are not
     // the version of how the copies are made: a newer kde-rice makes them again
-    QString stamp = u"2|"_s + theme + u'|' + colour;
+    QString stamp = u"3|"_s + theme + u'|' + colour + u'|' + launcher;
     const auto mineNow = QDir(overridesDir()).entryInfoList({u"*.svg"_s}, QDir::Files, QDir::Name);
     for (const QFileInfo &file : mineNow) {
         QFile in(file.absoluteFilePath());
@@ -258,7 +266,8 @@ static bool tint(const QString &theme, const QString &colour, QList<std::pair<QS
         }
     }
     // the user's own one-colour pictures (a tray glyph made in WhiteSur's
-    // style, a launcher glyph): theirs, coloured too, before everything else
+    // style, a launcher glyph): theirs, coloured too, before everything else;
+    // the launcher's (start-here) in its own colour
     QDir().mkpath(tinted + "/own"_L1);
     const auto mine = QDir(overridesDir()).entryInfoList({u"*.svg"_s}, QDir::Files);
     for (const QFileInfo &file : mine) {
@@ -272,7 +281,8 @@ static bool tint(const QString &theme, const QString &colour, QList<std::pair<QS
         if (!declared.hasMatch()) {
             continue;
         }
-        svg.replace(declared.captured(1), colour, Qt::CaseInsensitive);
+        const bool isLauncher = file.fileName().startsWith("start-here"_L1);
+        svg.replace(declared.captured(1), isLauncher ? launcher : colour, Qt::CaseInsensitive);
         QFile out(tinted + "/own/"_L1 + file.fileName());
         if (out.open(QIODevice::WriteOnly)) {
             out.write(svg.toUtf8());
@@ -302,7 +312,8 @@ bool write(const QString &mode)
         }
     }
     QList<std::pair<QString, QHash<QString, QString>>> tintedDirs;
-    if (tint(inherits.first(), textColour(), tintedDirs)) {
+    const QString text = textColour();
+    if (tint(inherits.first(), text, launcherColour(mode, text), tintedDirs)) {
         changed = true;
         // Plasma lets go of the icons it has drawn only when it restarts
         s_replaced = true;
