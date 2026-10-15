@@ -237,6 +237,27 @@ style makes those masks square, and the corners plugin gives Plasma's popup
 windows the frame's radius (6 px), along which KWin's blur has a smooth
 edge.
 
+## Turning kde-rice off
+
+The switch at the foot of the hub's sidebar (or `kde-rice --restore-defaults`
+in a terminal) turns kde-rice off as a whole: everything it changes goes
+back to what there was before it, where kde-rice noted that
+(`~/.local/state/kde-rice/*-before`), else to Plasma's own. The colour
+scheme, icon theme and Plasma style; Breeze's title bars and kde-rice's KWin
+plugins off; the gaps, the launcher (and its Meta+Space) and the tray stopped
+and hidden from autostart (entries in `~/.config/autostart`); the desktop's
+and the lock screen's wallpaper; kde-rice's desktop widgets taken off; the
+files written for GTK, the terminals, btop, VS Code, Teams and Outlook; T3
+Code's theme (the one it had before, else none: its own look); applets whose
+icon is one of kde-rice's glyphs (Show Desktop's `kde-rice-show-desktop`,
+which only kde-rice's icon theme has) given their own icon; and the login
+screen (asking for the password). Plasma is restarted once at the end.
+
+What was on is noted in `~/.local/state/kde-rice/off.json`; kde-rice's own
+choices (theme, opacity, gap, icons) stay as they are. Turning it on again
+(the switch, or `kde-rice --reapply`) brings it all back, the widgets where
+they were and the glyphs on their applets. `kde-rice --status` says `on` or `off`.
+
 ## How the hub changes Plasma
 
 The hub does what System Settings does: it writes the configuration files

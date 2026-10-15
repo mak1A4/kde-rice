@@ -390,10 +390,40 @@ bool inUse()
     return globals->group(u"Icons"_s).readEntry("Theme") == themeName();
 }
 
+static QString beforeFile()
+{
+    return QStandardPaths::writableLocation(QStandardPaths::GenericStateLocation) + "/kde-rice/icons-before"_L1;
+}
+
 void use()
 {
+    // the icon theme there was, for going back (restore), noted once
+    auto globals = KSharedConfig::openConfig(u"kdeglobals"_s, KConfig::NoGlobals);
+    globals->reparseConfiguration();
+    const QString current = globals->group(u"Icons"_s).readEntry("Theme");
+    if (current != themeName() && !QFileInfo::exists(beforeFile())) {
+        writeFile(beforeFile(), current.toUtf8() + '\n');
+    }
     QProcess::execute(u"/usr/lib/plasma-changeicons"_s, {themeName()});
     reload();
+}
+
+void restore(bool dark)
+{
+    QFile noted(beforeFile());
+    QString previous = noted.open(QIODevice::ReadOnly) ? QString::fromUtf8(noted.readAll()).trimmed() : QString();
+    noted.close();
+    // without a note, Plasma's own: Breeze, dark with a dark colour scheme
+    // as Breeze Dark's global theme has it
+    if (previous.isEmpty() || previous == themeName()
+        || QStandardPaths::locate(QStandardPaths::GenericDataLocation, "icons/"_L1 + previous, QStandardPaths::LocateDirectory).isEmpty()) {
+        previous = dark ? u"breeze-dark"_s : u"breeze"_s;
+    }
+    if (inUse()) {
+        QProcess::execute(u"/usr/lib/plasma-changeicons"_s, {previous});
+        reload(false);
+    }
+    QFile::remove(beforeFile());
 }
 
 // Plasma (the desktop and the panels; the windows stay) restarted in two
@@ -403,7 +433,7 @@ void use()
 // further apart (themes tried one after the other) are restarts of their
 // own, so the limit's count is cleared first (reset-failed does), where the
 // fourth in a minute left Plasma stopped, a black screen under the windows.
-static void restartPlasma()
+void restartPlasma()
 {
     // (a restart already waiting: systemd says so, and that one is it; not
     // waited for, so that the caller's thread is not held up)

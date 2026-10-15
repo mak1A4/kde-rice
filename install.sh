@@ -114,8 +114,10 @@ restart() {
 restart kde-rice-launcher kde-rice-launcher --background || true
 restart kde-rice-gaps kde-rice-gaps || true
 # the tray's entries that follow the icon theme: started now if they are not
-# running yet (later, by the autostart entry at login)
-if ! restart kde-rice-tray kde-rice-tray; then
+# running yet (later, by the autostart entry at login), unless kde-rice is
+# off (kde-rice --restore-defaults)
+off="${XDG_STATE_HOME:-$HOME/.local/state}/kde-rice/off.json"
+if ! restart kde-rice-tray kde-rice-tray && [ ! -e "$off" ]; then
     setsid kde-rice-tray > /dev/null 2>&1 < /dev/null &
     echo "started kde-rice-tray"
 fi
@@ -139,5 +141,8 @@ if [ "$(sums)" != "$before" ]; then
 fi
 if pgrep -x kde-rice > /dev/null; then
     echo "The hub is open in its old build: close it and open it again."
+fi
+if [ -e "$off" ]; then
+    echo "kde-rice is off: kde-rice --reapply turns it on again."
 fi
 echo "kde-rice installed."

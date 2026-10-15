@@ -18,6 +18,9 @@
 #     fontconfig/fonts.conf are copied to the login screen's user, as KDE's
 #     own "Apply Plasma Settings" does. Its icon theme has to be installed
 #     for everyone (in /usr/share/icons) to be found there.
+# While kde-rice is off (kde-rice --restore-defaults: the user's
+# ~/.local/state/kde-rice/off.json), the login screen gets Plasma's own
+# wallpaper back instead, and the user's settings, kde-rice's no longer.
 set -e
 
 plugin=io.github.mak1a4.kde-rice.background
@@ -45,6 +48,14 @@ home=$(getent passwd "$greeter" | cut -d: -f6)
 as_user() { runuser -u "$user" -- "$@"; }
 as_greeter() { runuser -u "$greeter" -- "$@"; }
 
+userhome=$(getent passwd "$user" | cut -d: -f6)
+if [ -e "$userhome/.local/state/kde-rice/off.json" ]; then
+    rm -f "$setting"
+    off=yes
+else
+    off=
+fi
+
 install -d -m 755 "$shared"
 install -d -m 755 -o "$user" "$shared/background"
 # the background in use now, at once (kde-rice copies it there itself at
@@ -58,9 +69,11 @@ for file in "$userdata"/*; do
     mv -f "$shared/background/$name.part" "$shared/background/$name"
 done
 
-install -d -m 755 "$(dirname "$setting")"
-printf '[Greeter]\nWallpaperPluginId=%s\n' "$plugin" > "$setting"
-chmod 644 "$setting"
+if [ -z "$off" ]; then
+    install -d -m 755 "$(dirname "$setting")"
+    printf '[Greeter]\nWallpaperPluginId=%s\n' "$plugin" > "$setting"
+    chmod 644 "$setting"
+fi
 
 # the greeter keeps colours in a cache it only fills when it has none
 as_greeter rm -rf "$home/.cache"
@@ -84,4 +97,8 @@ fi
 if [ -n "$icons" ] && [ ! -d "/usr/share/icons/$icons" ]; then
     echo "login-screen: the icon theme $icons is not installed for everyone: the login screen shows none of its icons" >&2
 fi
-echo "login screen updated for $user"
+if [ -n "$off" ]; then
+    echo "login screen updated for $user (kde-rice is off: Plasma's own wallpaper)"
+else
+    echo "login screen updated for $user"
+fi

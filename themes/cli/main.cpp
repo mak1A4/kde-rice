@@ -14,7 +14,8 @@
 //   kde-rice-theme icons refresh [--before-plasma]
 //                                           written again: app icons only hicolor or
 //                                           the pixmaps have trimmed (at login, before
-//                                           Plasma starts: then without restarting it)
+//                                           Plasma starts: then without restarting it;
+//                                           nothing while kde-rice is off)
 //   kde-rice-theme icons set <name> <file> [--trim]
 //                                           your own picture for an icon name (an
 //                                           app icon trimmed to fill its canvas)
@@ -30,6 +31,7 @@
 
 #include <QCoreApplication>
 #include <QFileInfo>
+#include <QStandardPaths>
 #include <QTextStream>
 
 #include <algorithm>
@@ -145,6 +147,10 @@ int main(int argc, char *argv[])
             return 0;
         }
         if (what == "refresh"_L1 && (arguments.isEmpty() || arguments == QStringList{u"--before-plasma"_s})) {
+            // nothing while kde-rice is off (kde-rice --restore-defaults)
+            if (QFileInfo::exists(QStandardPaths::writableLocation(QStandardPaths::GenericStateLocation) + "/kde-rice/off.json"_L1)) {
+                return 0;
+            }
             if (IconStore::write(mode) && IconStore::inUse()) {
                 IconStore::reload(arguments.isEmpty());
             }

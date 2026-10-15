@@ -29,14 +29,20 @@ QString baseFor(const QString &mode);
 bool write(const QString &mode);
 // whether kde-rice's icons are the ones in use
 bool inUse();
-// makes them the ones in use
+// makes them the ones in use (the icon theme there was noted, for restore)
 void use();
+// Back to the icon theme there was before use(), else Breeze (Breeze Dark
+// with `dark`), if kde-rice's are the ones in use.
+void restore(bool dark);
 // KDE's applications draw their icons again (after a change of the theme);
 // after a picture was replaced under an icon name already drawn, Plasma is
 // restarted (its desktop and panels), as nothing else makes it let go of it;
 // not when restartPlasma is false (Plasma not started yet: it will draw the
 // new pictures from the start)
 void reload(bool restartPlasma = true);
+// Plasma (its desktop and panels) restarted in two seconds; changes close
+// together are one restart, and systemd's limit on restarts is cleared first
+void restartPlasma();
 
 
 struct Theme {

@@ -55,6 +55,11 @@ public:
     // Sets the opacity and writes and applies the style, waiting for it
     // (the command line).
     static void applyOpacity(int percent);
+    // the opacity set, and whether kde-rice's style is in use now
+    static int savedOpacity();
+    static bool styleInUse();
+    // restore(), waiting for it
+    static void restoreStyle();
 
 Q_SIGNALS:
     void changed();

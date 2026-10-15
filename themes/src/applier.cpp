@@ -519,7 +519,8 @@ static void applyElectronTrays(Context &context)
 // it. It is told once (t3 theme set) that kde-rice's is the one to wear; a
 // theme chosen in its own settings after that stands. The file has to be a
 // real one (it does not read a link).
-static void applyT3Code(Context &context)
+// T3 Code's data directory, "" if it has none
+static QString t3Home()
 {
     QStringList homes;
     if (!qEnvironmentVariableIsEmpty("T3CODE_HOME")) {
@@ -527,20 +528,45 @@ static void applyT3Code(Context &context)
     }
     homes += {QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/t3"_L1, QDir::homePath() + "/.t3"_L1};
     for (const QString &home : std::as_const(homes)) {
-        if (!QFileInfo(home + "/userdata"_L1).isDir()) {
-            continue;
+        if (QFileInfo(home + "/userdata"_L1).isDir()) {
+            return home;
         }
-        context.render(u"t3code.json.tpl"_s, home + "/userdata/themes/kde-rice.json"_L1);
-        const QString told = stateDir() + "/t3code-told"_L1;
-        const QString cli = home + "/bin/t3"_L1;
-        if (context.tell() && !QFileInfo::exists(told) && QFileInfo(cli).isExecutable()) {
-            if (context.run(cli, {u"theme"_s, u"set"_s, u"--base-dir"_s, home, u"kde-rice"_s}) == 0) {
-                write(told, QByteArray());
-            } else {
-                context.problems += u"t3 theme set kde-rice failed"_s;
-            }
-        }
+    }
+    return {};
+}
+
+// the theme T3 Code's machine names for its windows ("" for none)
+static QString t3Theme(const QString &home)
+{
+    QFile file(home + "/userdata/settings.json"_L1);
+    if (!file.open(QIODevice::ReadOnly)) {
+        return {};
+    }
+    return QJsonDocument::fromJson(file.readAll()).object().value(u"defaultTheme"_s).toString();
+}
+
+static void applyT3Code(Context &context)
+{
+    const QString home = t3Home();
+    if (home.isEmpty()) {
         return;
+    }
+    context.render(u"t3code.json.tpl"_s, home + "/userdata/themes/kde-rice.json"_L1);
+    const QString told = stateDir() + "/t3code-told"_L1;
+    const QString cli = home + "/bin/t3"_L1;
+    if (context.tell() && !QFileInfo::exists(told) && QFileInfo(cli).isExecutable()) {
+        // the theme it had, for going back (restore), noted once
+        const QString before = stateDir() + "/t3code-before"_L1;
+        const QString current = t3Theme(home);
+        if (current != "kde-rice"_L1 && !QFileInfo::exists(before)) {
+            write(before, current.toUtf8() + '\n');
+        }
+        // (the t3 command opens T3 Code's AppImage first: seconds)
+        if (context.run(cli, {u"theme"_s, u"set"_s, u"--base-dir"_s, home, u"kde-rice"_s}, 30000) == 0) {
+            write(told, QByteArray());
+        } else {
+            context.problems += u"t3 theme set kde-rice failed"_s;
+        }
     }
 }
 
@@ -626,6 +652,8 @@ static void fillLoginScreen(const QString &file, const QString &name)
     fill(shared, QFileInfo(picture).isFile() ? picture : QString(), u"desktop"_s, true);
 }
 
+static void restoreWallpaper(bool tellPlasma = true);
+
 static void applyBackground(Context &context, const QString &file)
 {
     const bool installed = !QStandardPaths::locate(QStandardPaths::GenericDataLocation, "plasma/wallpapers/"_L1 + s_wallpaper, QStandardPaths::LocateDirectory).isEmpty();
@@ -662,15 +690,30 @@ static void applyBackground(Context &context, const QString &file)
         return;
     }
     // no background: what they had before, back
-    QFile noted(before);
-    if (!noted.open(QIODevice::ReadOnly)) {
-        return;
+    if (QFileInfo::exists(before)) {
+        restoreWallpaper();
     }
-    const QStringList lines = QString::fromUtf8(noted.readAll()).split(u'\n');
-    noted.close();
-    const QString desktop = lines.value(0).isEmpty() ? u"org.kde.image"_s : lines.value(0);
-    const QString locked = lines.value(1).isEmpty() ? u"org.kde.image"_s : lines.value(1);
-    if (desktopPlugin() == s_wallpaper) {
+}
+
+// The desktop's and the lock screen's wallpaper plugins as they were before
+// kde-rice's (wallpaper-before), Plasma's own picture plugin without a note;
+// with `tellPlasma` false only the lock screen's (a file).
+static void restoreWallpaper(bool tellPlasma)
+{
+    const QString before = stateDir() + "/wallpaper-before"_L1;
+    QFile noted(before);
+    QStringList lines;
+    if (noted.open(QIODevice::ReadOnly)) {
+        lines = QString::fromUtf8(noted.readAll()).split(u'\n');
+        noted.close();
+    }
+    const auto previous = [&lines](int line) {
+        const QString plugin = lines.value(line);
+        return plugin.isEmpty() || plugin == s_wallpaper ? u"org.kde.image"_s : plugin;
+    };
+    const QString desktop = previous(0);
+    const QString locked = previous(1);
+    if (tellPlasma && desktopPlugin() == s_wallpaper) {
         setDesktopPlugin(desktop);
     }
     KConfigGroup lock = lockGroup();
@@ -701,6 +744,214 @@ QStringList apply(const Theme &theme, const QString &background, const Options &
     applyElectronTrays(context);
     applyT3Code(context);
     applyBackground(context, background);
+    return context.problems;
+}
+
+// ---- back to what there was ---------------------------------------------
+
+// Takes what lies from `start` to `end` (and the line break before it) out
+// of `text`. True if it was there.
+static bool cut(QString &text, const QString &start, const QString &end)
+{
+    const qsizetype from = text.indexOf(start);
+    const qsizetype to = from < 0 ? -1 : text.indexOf(end, from);
+    if (from < 0 || to < 0) {
+        return false;
+    }
+    qsizetype until = to + end.size();
+    // the line break that came before it, which it was put after
+    qsizetype begin = from;
+    if (begin > 0 && text[begin - 1] == u'\n') {
+        --begin;
+    }
+    text.remove(begin, until - begin);
+    return true;
+}
+
+static void restoreKde(Context &context)
+{
+    auto globals = KSharedConfig::openConfig(u"kdeglobals"_s, KConfig::NoGlobals);
+    const QString current = globals->group(u"General"_s).readEntry("ColorScheme");
+    const QString before = stateDir() + "/colorscheme-before"_L1;
+    QFile noted(before);
+    QString previous = noted.open(QIODevice::ReadOnly) ? QString::fromUtf8(noted.readAll()).trimmed() : QString();
+    noted.close();
+    // Plasma's own without a note (or one of kde-rice's, or one gone since)
+    if (previous.isEmpty() || previous.startsWith("KDERice"_L1)
+        || QStandardPaths::locate(QStandardPaths::GenericDataLocation, "color-schemes/"_L1 + previous + ".colors"_L1).isEmpty()) {
+        previous = u"BreezeLight"_s;
+    }
+    if (current.startsWith("KDERice"_L1)) {
+        const QDateTime gtkColours = QFileInfo(configHome() + "/gtk-3.0/colors.css"_L1).lastModified();
+        if (context.run(u"plasma-apply-colorscheme"_s, {previous}) != 0) {
+            context.problems += u"plasma-apply-colorscheme %1 failed"_s.arg(previous);
+        } else if (context.tell()) {
+            refreshGtk(gtkColours);
+        }
+    }
+    QFile::remove(before);
+    globals->reparseConfiguration();
+    const QString scheme = globals->group(u"General"_s).readEntry("ColorScheme", previous);
+    IconStore::restore(scheme.contains("Dark"_L1, Qt::CaseInsensitive));
+}
+
+static void restoreGtk()
+{
+    const QString dir = configHome() + "/gtk-4.0"_L1;
+    QFile sheet(dir + "/gtk.css"_L1);
+    if (sheet.open(QIODevice::ReadOnly)) {
+        QByteArray text = sheet.readAll();
+        sheet.close();
+        const QByteArray line = "@import 'kde-rice.css';";
+        if (text.contains(line)) {
+            // as applyGtk put it there: after a line break of its own
+            text.replace(QByteArray("\n\n" + line + "\n"), "\n");
+            text.replace(QByteArray("\n" + line + "\n"), "\n");
+            text.replace(QByteArray(line + "\n"), "");
+            text.replace(line, "");
+            write(dir + "/gtk.css"_L1, text);
+        }
+    }
+    QFile::remove(dir + "/kde-rice.css"_L1);
+}
+
+static void restoreBtop(Context &context)
+{
+    const QString dir = configHome() + "/btop"_L1;
+    QFile conf(dir + "/btop.conf"_L1);
+    if (conf.open(QIODevice::ReadOnly)) {
+        QString text = QString::fromUtf8(conf.readAll());
+        conf.close();
+        static const QRegularExpression entry(u"^color_theme = \"kde-rice\"$"_s, QRegularExpression::MultilineOption);
+        if (entry.match(text).hasMatch()) {
+            // btop's own
+            text.replace(entry, u"color_theme = \"Default\""_s);
+            write(dir + "/btop.conf"_L1, text.toUtf8());
+            if (context.tell()) {
+                context.run(u"pkill"_s, {u"-USR2"_s, u"-x"_s, u"btop"_s});
+            }
+        }
+    }
+    QFile::remove(dir + "/themes/kde-rice.theme"_L1);
+}
+
+static void restoreVsCode()
+{
+    for (const auto *editor : {"Code", "Code - OSS", "VSCodium"}) {
+        const QString path = configHome() + u'/' + QString::fromLatin1(editor) + "/User/settings.json"_L1;
+        QFile file(path);
+        if (!file.open(QIODevice::ReadOnly)) {
+            continue;
+        }
+        QString text = QString::fromUtf8(file.readAll());
+        file.close();
+        if (cut(text, s_vscodeStart, s_vscodeEnd)) {
+            write(path, text.toUtf8());
+        }
+    }
+}
+
+// the tray picture named in Teams' and Outlook's config.json, where it is
+// kde-rice's: the entry goes, and they draw their own again
+static void restoreElectronTrays()
+{
+    const QList<std::pair<QString, QStringList>> apps = {
+        {u"teams-for-linux"_s, {u"tray"_s, u"icon"_s}},
+        {u"outlook-for-linux"_s, {u"appIcon"_s}},
+    };
+    for (const auto &[name, key] : apps) {
+        const QString path = configHome() + u'/' + name + "/config.json"_L1;
+        QFile file(path);
+        if (!file.open(QIODevice::ReadOnly)) {
+            continue;
+        }
+        const QJsonDocument document = QJsonDocument::fromJson(file.readAll());
+        file.close();
+        if (!document.isObject()) {
+            continue;
+        }
+        QJsonObject config = document.object();
+        const auto ours = [](const QJsonValue &value) {
+            return value.toString().startsWith(outputDir() + u'/');
+        };
+        if (key.size() == 2) {
+            QJsonObject inner = config.value(key[0]).toObject();
+            if (!ours(inner.value(key[1]))) {
+                continue;
+            }
+            inner.remove(key[1]);
+            if (inner.isEmpty()) {
+                config.remove(key[0]);
+            } else {
+                config.insert(key[0], inner);
+            }
+        } else {
+            if (!ours(config.value(key[0]))) {
+                continue;
+            }
+            config.remove(key[0]);
+        }
+        write(path, QJsonDocument(config).toJson());
+    }
+}
+
+// T3 Code back to the theme its machine named before kde-rice's (one of
+// its own, or one published there), else to none, and kde-rice's no longer
+// published: a window that still wears it takes T3 Code's own look then.
+static void restoreT3Code(Context &context)
+{
+    const QString home = t3Home();
+    if (home.isEmpty()) {
+        return;
+    }
+    const QString told = stateDir() + "/t3code-told"_L1;
+    const QString before = stateDir() + "/t3code-before"_L1;
+    const QString cli = home + "/bin/t3"_L1;
+    if (context.tell() && QFileInfo::exists(told) && QFileInfo(cli).isExecutable()) {
+        QFile noted(before);
+        const QString previous = noted.open(QIODevice::ReadOnly) ? QString::fromUtf8(noted.readAll()).trimmed() : QString();
+        noted.close();
+        static const QStringList builtIn = {u"t3-chat"_s, u"grove"_s, u"ocean"_s, u"ember"_s, u"iris"_s};
+        const bool known = !previous.isEmpty() && previous != "kde-rice"_L1
+            && (builtIn.contains(previous) || QFileInfo::exists(home + "/userdata/themes/"_L1 + previous + ".json"_L1));
+        const auto t3 = [&](const QStringList &arguments) {
+            return context.run(cli, QStringList{u"theme"_s, arguments.first(), u"--base-dir"_s, home} + arguments.mid(1), 30000) == 0;
+        };
+        if ((known && t3({u"set"_s, previous})) || t3({u"clear"_s})) {
+            QFile::remove(told);
+            QFile::remove(before);
+        } else {
+            context.problems += u"t3 theme clear failed: T3 Code keeps kde-rice's theme"_s;
+            return;
+        }
+    }
+    if (t3Theme(home) != "kde-rice"_L1) {
+        QFile::remove(home + "/userdata/themes/kde-rice.json"_L1);
+    }
+}
+
+QStringList restore(const Options &options)
+{
+    Context context{{}, {}, options, {}};
+    restoreKde(context);
+    restoreGtk();
+    restoreBtop(context);
+    restoreVsCode();
+    restoreElectronTrays();
+    restoreT3Code(context);
+    // the terminals', tmux's and Neovim's files: their configurations take
+    // them only where they are there. Ghostty reads its own again.
+    QDir(outputDir()).removeRecursively();
+    if (context.tell()) {
+        context.run(u"pkill"_s, {u"-USR2"_s, u"-x"_s, u"ghostty"_s});
+    }
+    // the background: kde-rice's copies go, the wallpaper plugins before it
+    // come back, and the login screen's copy is the desktop's picture
+    fill(QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/kde-rice/background"_L1, QString(), QString());
+    restoreWallpaper(context.tell());
+    if (context.tell()) {
+        fillLoginScreen(QString(), QString());
+    }
     return context.problems;
 }
 

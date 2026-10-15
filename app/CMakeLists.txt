@@ -17,6 +17,7 @@ qt_add_executable(kde-rice
     src/iconmodel.cpp src/iconmodel.h
     src/kwinplugin.cpp src/kwinplugin.h
     src/panelstyle.cpp src/panelstyle.h
+    src/riceswitch.cpp src/riceswitch.h
     src/session.cpp src/session.h
     src/thememodel.cpp src/thememodel.h
     src/worker.h

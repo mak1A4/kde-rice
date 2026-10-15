@@ -1,4 +1,5 @@
 #include "panelstyle.h"
+#include "riceswitch.h"
 
 #include <KAboutData>
 #include <KLocalizedQmlContext>
@@ -10,6 +11,8 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickStyle>
+
+#include <cstdio>
 
 int main(int argc, char *argv[])
 {
@@ -29,12 +32,28 @@ int main(int argc, char *argv[])
     about.setupCommandLine(&parser);
     parser.addOption({QStringLiteral("page"), i18n("The page to open: appearance, icons, windows, panels or effects."), QStringLiteral("page")});
     parser.addOption({QStringLiteral("panel-opacity"), i18n("Set the panels' opacity (percent) and quit."), QStringLiteral("percent")});
+    parser.addOption({QStringLiteral("restore-defaults"),
+                      i18n("Turn kde-rice off: everything it changes back to what there was before it, else to Plasma's own, and quit.")});
+    parser.addOption({QStringLiteral("reapply"), i18n("Turn kde-rice on again after --restore-defaults, as it was, and quit.")});
+    parser.addOption({QStringLiteral("status"), i18n("Say whether kde-rice is on or off, and quit.")});
     parser.process(app);
     about.processCommandLine(&parser);
 
     if (parser.isSet(QStringLiteral("panel-opacity"))) {
         PanelStyle::applyOpacity(parser.value(QStringLiteral("panel-opacity")).toInt());
         return 0;
+    }
+    if (parser.isSet(QStringLiteral("status"))) {
+        std::fputs(RiceSwitch::isOn() ? "on\n" : "off\n", stdout);
+        return 0;
+    }
+    if (parser.isSet(QStringLiteral("restore-defaults")) || parser.isSet(QStringLiteral("reapply"))) {
+        const QStringList problems = parser.isSet(QStringLiteral("restore-defaults")) ? RiceSwitch::restoreDefaults() : RiceSwitch::reapply();
+        for (const QString &problem : problems) {
+            std::fprintf(stderr, "%s\n", qPrintable(problem));
+        }
+        std::fputs(RiceSwitch::isOn() ? "kde-rice is on.\n" : "kde-rice is off: kde-rice --reapply turns it on again.\n", stdout);
+        return problems.isEmpty() ? 0 : 1;
     }
 
     QApplication::setWindowIcon(QIcon::fromTheme(QStringLiteral("preferences-desktop-theme-global")));

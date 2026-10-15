@@ -46,6 +46,14 @@ struct Options {
 // What went wrong, one line each; empty if nothing did.
 QStringList apply(const Theme &theme, const QString &background, const Options &options = {});
 
+// Undoes what apply did, as far as it can: KDE's colour scheme and icon
+// theme as they were before kde-rice's (else Breeze), GTK 4's, btop's, VS
+// Code's, Teams' and Outlook's files without kde-rice's part, the terminals'
+// files gone, T3 Code's theme as it was (else none), and the wallpaper
+// plugins of the desktop and the lock screen as they were. With
+// `filesOnly`, no running program is told (Plasma's tools still run).
+QStringList restore(const Options &options = {});
+
 // the directory the terminal, tmux and Neovim files are written to
 QString outputDir();
 }

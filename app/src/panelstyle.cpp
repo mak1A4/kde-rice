@@ -50,6 +50,11 @@ static int readOpacity()
     return std::clamp(settings().readEntry("Opacity", s_breezeOpacity), 0, 100);
 }
 
+int PanelStyle::savedOpacity()
+{
+    return readOpacity();
+}
+
 PanelStyle::PanelStyle(QObject *parent)
     : QObject(parent)
 {
@@ -256,12 +261,24 @@ void PanelStyle::restore()
 {
     m_worker.run(
         [] {
-            QFile before(stateFile());
-            const QString previous = before.open(QIODevice::ReadOnly) ? QString::fromUtf8(before.readAll()).trimmed() : QString();
-            QProcess::execute(u"plasma-apply-desktoptheme"_s, {previous.isEmpty() || previous == s_style ? u"default"_s : previous});
-            QFile::remove(stateFile());
+            restoreStyle();
         },
         [this] {
             read();
         });
+}
+
+bool PanelStyle::styleInUse()
+{
+    return currentStyle() == s_style;
+}
+
+void PanelStyle::restoreStyle()
+{
+    QFile before(stateFile());
+    const QString previous = before.open(QIODevice::ReadOnly) ? QString::fromUtf8(before.readAll()).trimmed() : QString();
+    if (styleInUse()) {
+        QProcess::execute(u"plasma-apply-desktoptheme"_s, {previous.isEmpty() || previous == s_style ? u"default"_s : previous});
+    }
+    QFile::remove(stateFile());
 }
