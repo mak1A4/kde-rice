@@ -161,12 +161,12 @@ static QString textColour()
     return theme ? theme->color(u"fg"_s).name() : QString();
 }
 
-// the colour of the launcher's glyph (the user's own start-here picture):
-// KDE's blue on a light panel, where the text colour is a dark one and the
-// K wants its own colour; the text colour on a dark one, where that is pale
-static QString launcherColour(const QString &mode, const QString &text)
+// the colour of the launcher's glyph (the start-here picture): KDE's blue
+// in the shade for the panel, Breeze's Abyss Blue on a light one and its
+// Plasma Blue on a dark one
+static QString launcherColour(const QString &mode)
 {
-    return mode == "dark"_L1 ? text : u"#1d99f3"_s;
+    return mode == "dark"_L1 ? u"#3daee9"_s : u"#2980b9"_s;
 }
 
 // a base theme's directories of status icons, with their index entries
@@ -334,8 +334,7 @@ bool write(const QString &mode)
         }
     }
     QList<std::pair<QString, QHash<QString, QString>>> tintedDirs;
-    const QString text = textColour();
-    if (tint(inherits.first(), text, launcherColour(mode, text), tintedDirs)) {
+    if (tint(inherits.first(), textColour(), launcherColour(mode), tintedDirs)) {
         changed = true;
         // Plasma lets go of the icons it has drawn only when it restarts
         s_replaced = true;

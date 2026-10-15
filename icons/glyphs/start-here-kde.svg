@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" version="1.1">
-<!-- The launcher's glyph (start-here-kde): the KDE gear of the Char White icon theme (char-white, apps/16/kde.svg), its text colour set to WhiteSur's grey so that kde-rice colours it: KDE's blue on a light panel, the theme's text colour on a dark one (themes/src/icons.cpp) -->
+<!-- The launcher's glyph (start-here-kde): the KDE gear of the Char White icon theme (char-white, apps/16/kde.svg), its text colour set to WhiteSur's grey so that kde-rice colours it in KDE's blue, a darker shade on a light panel and a lighter one on a dark panel (themes/src/icons.cpp) -->
  <defs>
    <style id="current-color-scheme" type="text/css">
    .ColorScheme-Text { color: #363636; } .ColorScheme-Highlight { color:#5294e2; }

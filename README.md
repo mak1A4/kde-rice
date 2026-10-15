@@ -111,8 +111,9 @@ text colour, the colour Plasma draws the clock in: copies in
 changes (Plasma is restarted then, as it keeps the icons it has drawn). So
 are your own one-colour pictures (those declaring a `ColorScheme-Text`
 colour) and kde-rice's own glyphs (`icons/glyphs`: the launcher's K, in
-KDE's blue on a light panel; the weather applet's cloud before it is set
-up; the tray's microphone), which come below yours and above the base's.
+KDE's blue, darker on a light panel and lighter on a dark one; the weather
+applet's cloud before it is set up; the tray's microphone), which come below
+yours and above the base's.
 The Show Desktop applet draws its icon larger than the tray's; a glyph the
 size of theirs is `kde-rice-show-desktop`, set as the applet's icon with
 `qdbus6 org.kde.plasmashell /PlasmaShell evaluateScript 'for (const p of
