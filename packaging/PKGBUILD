@@ -20,6 +20,11 @@ optdepends=('ffmpeg: pictures of backgrounds on the Appearance page'
 makedepends=(cmake extra-cmake-modules ninja git patch gtk-update-icon-cache)
 provides=(kde-rice)
 conflicts=(kde-rice)
+# Built without debug symbols, so nothing to strip: makepkg's stripping
+# looks at every one of WhiteSur's ~44000 files and took nine tenths of the
+# time. No link-time optimisation either, which made each change relink
+# everything slowly.
+options=(!strip !debug !lto)
 
 _repo=$(realpath "$startdir/..")
 
@@ -29,9 +34,12 @@ pkgver() {
 
 build() {
     cmake -S "$_repo" -B build -G Ninja \
-        -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+        -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX=/usr \
-        -DBUILD_TESTING=OFF
+        -DBUILD_TESTING=OFF \
+        `# makepkg's flags of now, over those the build directory kept from its first run` \
+        -DCMAKE_C_FLAGS="$CFLAGS" -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+        -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" -DCMAKE_SHARED_LINKER_FLAGS="$LDFLAGS" -DCMAKE_MODULE_LINKER_FLAGS="$LDFLAGS"
     cmake --build build
 }
 
