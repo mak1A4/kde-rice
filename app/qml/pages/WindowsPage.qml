@@ -5,7 +5,30 @@ import org.kde.kirigamiaddons.formcard as FormCard
 import io.github.mak1a4.rice
 
 FormCard.FormCardPage {
+    id: page
+
     title: i18n("Windows")
+
+    // The scale of the screen the hub is on: its window's, as Plasma gives
+    // it (1.33 at 133 %); the screen's own is rounded up to a whole number
+    readonly property real screenScale: page.Window.window ? page.Window.window.devicePixelRatio : 1
+    // The smallest step in logical pixels that is a whole number of the
+    // screen's pixels (3 at 133 %, 4 at 125 %, 2 at 150 %): gaps and corners
+    // in such steps fall on the pixel grid, where others leave window edges
+    // and the corners' outline between two pixels, blurred and jagged.
+    readonly property int pixelStep: {
+        for (let n = 1; n <= 8; ++n) {
+            if (Math.abs(n * screenScale - Math.round(n * screenScale)) < 0.01) {
+                return n;
+            }
+        }
+        return 1;
+    }
+    readonly property string stepHint: pixelStep > 1 ? i18n("In steps of %1, whole pixels at %2 % scale.", pixelStep, Math.round(screenScale * 100)) : ""
+
+    function snapped(value) {
+        return Math.round(value / pixelStep) * pixelStep;
+    }
 
     KWinPlugin {
         id: corners
@@ -59,11 +82,22 @@ FormCard.FormCardPage {
 
         FormCard.FormSpinBoxDelegate {
             label: i18n("Gap (logical pixels)")
+            description: page.stepHint
             enabled: gaps.value
             from: 0
             to: 60
-            value: gapSize.value
-            onValueChanged: if (value !== gapSize.value) gapSize.value = value
+            stepSize: page.pixelStep
+            Binding on value {
+                value: gapSize.value
+            }
+            onValueChanged: {
+                // typed, or stepped from a value off the grid: onto it
+                if (value !== page.snapped(value)) {
+                    value = page.snapped(value);
+                } else if (value !== gapSize.value) {
+                    gapSize.value = value;
+                }
+            }
         }
     }
 
@@ -98,10 +132,20 @@ FormCard.FormCardPage {
 
         FormCard.FormSpinBoxDelegate {
             label: i18n("Corner radius (logical pixels)")
+            description: page.stepHint
             from: 0
             to: 40
-            value: radius.value
-            onValueChanged: if (value !== radius.value) radius.value = value
+            stepSize: page.pixelStep
+            Binding on value {
+                value: radius.value
+            }
+            onValueChanged: {
+                if (value !== page.snapped(value)) {
+                    value = page.snapped(value);
+                } else if (value !== radius.value) {
+                    radius.value = value;
+                }
+            }
         }
     }
 }

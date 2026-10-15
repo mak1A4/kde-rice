@@ -16,10 +16,11 @@ class KWinPlugin : public QObject, public QQmlParserStatus
     QML_ELEMENT
 
     Q_PROPERTY(QString pluginId MEMBER m_id NOTIFY pluginIdChanged)
-    Q_PROPERTY(QString name READ name NOTIFY pluginIdChanged)
-    Q_PROPERTY(QString description READ description NOTIFY pluginIdChanged)
+    // from the plugin's file, looked up when the id is set (and at refresh)
+    Q_PROPERTY(QString name READ name NOTIFY metaDataChanged)
+    Q_PROPERTY(QString description READ description NOTIFY metaDataChanged)
     // the plugin's file is where KWin looks for it
-    Q_PROPERTY(bool installed READ installed NOTIFY pluginIdChanged)
+    Q_PROPERTY(bool installed READ installed NOTIFY metaDataChanged)
     Q_PROPERTY(bool enabled READ enabled WRITE setEnabled NOTIFY enabledChanged)
     // KWin has it loaded now
     Q_PROPERTY(bool loaded READ loaded NOTIFY loadedChanged)
@@ -46,6 +47,7 @@ public:
 
 Q_SIGNALS:
     void pluginIdChanged();
+    void metaDataChanged();
     void enabledChanged();
     void loadedChanged();
 

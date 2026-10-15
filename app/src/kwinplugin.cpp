@@ -82,7 +82,9 @@ void KWinPlugin::setEnabled(bool enabled)
 
 void KWinPlugin::refresh()
 {
+    // what bindings read before the lookup (installed false) is told anew
     m_data = m_id.isEmpty() ? KPluginMetaData() : metaData(m_id);
+    Q_EMIT metaDataChanged();
     Q_EMIT enabledChanged();
     if (m_id.isEmpty()) {
         setLoaded(false);
