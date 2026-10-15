@@ -32,8 +32,7 @@ void ThemeModel::reload()
     const QString chosenBefore = m_choice.theme;
     m_choice = ThemeStore::choice();
 
-    beginResetModel();
-    m_rows.clear();
+    QList<Row> rows;
     const QString userDir = ThemeStore::userDir();
     const QStringList names = ThemeStore::names();
     for (const QString &name : names) {
@@ -46,9 +45,26 @@ void ThemeModel::reload()
         row.own = QFileInfo(theme->path).absolutePath() == userDir;
         const QString background = chosenBackground(name);
         row.thumbnail = background.isEmpty() ? QString() : ThemeStore::thumbnail(background);
-        m_rows += row;
+        rows += row;
     }
-    endResetModel();
+    // The same themes as before (the usual case: this follows every save of
+    // the choice, the hub's own included): the rows are changed in place,
+    // and the grid keeps its cards, their pictures and its scroll position,
+    // where a reset would make them anew. Only a theme come or gone resets.
+    bool sameThemes = rows.size() == m_rows.size();
+    for (qsizetype i = 0; sameThemes && i < rows.size(); ++i) {
+        sameThemes = rows[i].theme.name == m_rows[i].theme.name;
+    }
+    if (sameThemes) {
+        m_rows = rows;
+        if (!m_rows.isEmpty()) {
+            Q_EMIT dataChanged(index(0), index(m_rows.size() - 1));
+        }
+    } else {
+        beginResetModel();
+        m_rows = rows;
+        endResetModel();
+    }
     Q_EMIT currentChanged();
 
     // Saving the chosen theme's file applies it again. A theme chosen

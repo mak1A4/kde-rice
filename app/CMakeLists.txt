@@ -19,6 +19,7 @@ qt_add_executable(kde-rice
     src/panelstyle.cpp src/panelstyle.h
     src/session.cpp src/session.h
     src/thememodel.cpp src/thememodel.h
+    src/worker.h
 )
 
 qt_add_qml_module(kde-rice

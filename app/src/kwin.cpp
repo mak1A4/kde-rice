@@ -4,9 +4,11 @@
 #include <KPluginMetaData>
 #include <KSharedConfig>
 
+#include <QCoreApplication>
 #include <QDBusConnection>
 #include <QDBusMessage>
 #include <QDBusPendingCall>
+#include <QTimer>
 
 using namespace Qt::StringLiterals;
 
@@ -20,7 +22,18 @@ KWin::KWin(QObject *parent)
 
 void KWin::reconfigure()
 {
-    QDBusConnection::sessionBus().asyncCall(QDBusMessage::createMethodCall(u"org.kde.KWin"_s, u"/KWin"_s, u"org.kde.KWin"_s, u"reconfigure"_s));
+    // changes close together (a spin box stepped through its values) are
+    // one reconfigure, once they rest: each is KWin reading all its settings
+    static QTimer *settle = [] {
+        auto timer = new QTimer(QCoreApplication::instance());
+        timer->setSingleShot(true);
+        timer->setInterval(250);
+        QObject::connect(timer, &QTimer::timeout, [] {
+            QDBusConnection::sessionBus().asyncCall(QDBusMessage::createMethodCall(u"org.kde.KWin"_s, u"/KWin"_s, u"org.kde.KWin"_s, u"reconfigure"_s));
+        });
+        return timer;
+    }();
+    settle->start();
 }
 
 QString KWin::decoration() const

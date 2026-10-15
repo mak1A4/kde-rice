@@ -15,9 +15,6 @@ FormCard.FormCardPage {
 
     IconModel {
         id: icons
-        // applications installed since the theme was last written: their
-        // icons trimmed now, not only at the next login
-        Component.onCompleted: refresh()
     }
 
     IconPicker {
@@ -31,7 +28,10 @@ FormCard.FormCardPage {
 
         property string label
         property string iconName
+        property url picture
         property bool fixed: false
+        property bool overridden: false
+        property bool trimmed: false
         property string desktopId
 
         onClicked: {
@@ -47,10 +47,7 @@ FormCard.FormCardPage {
             Image {
                 Layout.preferredWidth: Kirigami.Units.iconSizes.medium
                 Layout.preferredHeight: Kirigami.Units.iconSizes.medium
-                source: {
-                    icons.revision;
-                    return icons.current(row.iconName);
-                }
+                source: row.picture
                 sourceSize.width: Kirigami.Units.iconSizes.medium * 2
                 sourceSize.height: Kirigami.Units.iconSizes.medium * 2
                 fillMode: Image.PreserveAspectFit
@@ -67,12 +64,8 @@ FormCard.FormCardPage {
                 }
                 QQC2.Label {
                     Layout.fillWidth: true
-                    text: {
-                        icons.revision;
-                        return row.fixed ? i18n("a fixed picture: changing it gives the app an icon of its own")
-                                         : row.iconName + (icons.overridden(row.iconName) ? i18n(" · yours")
-                                                         : icons.trimmed(row.iconName) ? i18n(" · trimmed") : "");
-                    }
+                    text: row.fixed ? i18n("a fixed picture: changing it gives the app an icon of its own")
+                                    : row.iconName + (row.overridden ? i18n(" · yours") : row.trimmed ? i18n(" · trimmed") : "")
                     font: Kirigami.Theme.smallFont
                     color: Kirigami.Theme.disabledTextColor
                     elide: Text.ElideRight
@@ -81,10 +74,8 @@ FormCard.FormCardPage {
 
             QQC2.Button {
                 text: i18n("Reset")
-                visible: {
-                    icons.revision;
-                    return !row.fixed && icons.overridden(row.iconName);
-                }
+                visible: !row.fixed && row.overridden
+                enabled: !icons.busy
                 onClicked: icons.resetIcon(row.iconName)
             }
             QQC2.Button {
@@ -97,19 +88,39 @@ FormCard.FormCardPage {
 
     FormCard.FormHeader {
         title: i18n("Icon theme")
+        trailing: QQC2.BusyIndicator {
+            // the theme being written, or the pictures being found
+            running: icons.busy
+            visible: running
+            implicitHeight: Kirigami.Units.iconSizes.smallMedium
+            implicitWidth: implicitHeight
+        }
     }
 
     FormCard.FormCard {
         FormCard.FormComboBoxDelegate {
+            id: baseTheme
             text: i18n("Base theme")
             description: icons.baseVariant !== icons.base
                 ? i18n("Every icon you have not chosen yourself. Now %1, for the theme's light or dark.", icons.baseVariant)
                 : i18n("Every icon you have not chosen yourself.")
+            enabled: !icons.busy
             model: icons.themes
             textRole: "name"
             valueRole: "id"
-            Component.onCompleted: currentIndex = indexOfValue(icons.base)
             onActivated: icons.setBase(currentValue)
+            // kept at the base in use: it can be changed elsewhere
+            // (kde-rice-theme) while the page is open
+            function follow() {
+                currentIndex = indexOfValue(icons.base);
+            }
+            Component.onCompleted: follow()
+            Connections {
+                target: icons
+                function onChanged() {
+                    baseTheme.follow();
+                }
+            }
         }
 
         FormCard.FormDelegateSeparator {}
@@ -117,6 +128,7 @@ FormCard.FormCardPage {
         FormCard.FormSwitchDelegate {
             text: i18n("Trim icons no theme has")
             description: i18n("Apps whose icon only hicolor or the pixmaps have, drawn with a margin of their own, made to fill their square like the base theme's.")
+            enabled: !icons.busy
             checked: icons.trimFallbacks
             onToggled: icons.trimFallbacks = checked
         }
@@ -124,7 +136,18 @@ FormCard.FormCardPage {
         FormCard.FormDelegateSeparator {}
 
         FormCard.FormButtonDelegate {
+            text: i18n("Refresh")
+            description: i18n("The icon theme written again, for applications installed since login: their icons trimmed too. Done by itself at every login.")
+            icon.name: "view-refresh"
+            enabled: !icons.busy
+            onClicked: icons.refresh()
+        }
+
+        FormCard.FormDelegateSeparator {}
+
+        FormCard.FormButtonDelegate {
             visible: !icons.inUse
+            enabled: !icons.busy
             text: i18n("Use kde-rice's icons")
             description: i18n("Your own icons on top of the base theme, for all of KDE.")
             icon.name: "preferences-desktop-icons"
@@ -157,7 +180,10 @@ FormCard.FormCardPage {
                 required property var modelData
                 label: modelData.name
                 iconName: modelData.icon
+                picture: modelData.picture
                 fixed: modelData.fixed
+                overridden: modelData.overridden
+                trimmed: modelData.trimmed
                 desktopId: modelData.id
             }
         }
@@ -248,9 +274,11 @@ FormCard.FormCardPage {
         Repeater {
             model: icons.overrides
             delegate: IconRow {
-                required property string modelData
-                label: modelData
-                iconName: modelData
+                required property var modelData
+                label: modelData.name
+                iconName: modelData.name
+                picture: modelData.picture
+                overridden: true
             }
         }
     }

@@ -24,6 +24,13 @@ FormCard.FormCardPage {
                         Layout.fillWidth: true
                         text: i18n("Panel opacity")
                     }
+                    QQC2.BusyIndicator {
+                        // the style being written and applied
+                        running: PanelStyle.busy
+                        visible: running
+                        implicitHeight: Kirigami.Units.iconSizes.smallMedium
+                        implicitWidth: implicitHeight
+                    }
                     QQC2.Label {
                         text: i18nc("percent", "%1 %", opacity.value)
                         font.features: { "tnum": 1 }
@@ -41,6 +48,15 @@ FormCard.FormCardPage {
                     // applied once the slider rests: each change is the
                     // Plasma style applied anew
                     onMoved: settle.restart()
+                    // follows a change made elsewhere while at rest
+                    Connections {
+                        target: PanelStyle
+                        function onChanged() {
+                            if (!opacity.pressed && !settle.running) {
+                                opacity.value = PanelStyle.opacity;
+                            }
+                        }
+                    }
                 }
 
                 QQC2.Label {
@@ -65,6 +81,7 @@ FormCard.FormCardPage {
 
         FormCard.FormButtonDelegate {
             visible: PanelStyle.inUse
+            enabled: !PanelStyle.busy
             text: i18n("Back to the Plasma style before")
             icon.name: "edit-undo"
             onClicked: PanelStyle.restore()

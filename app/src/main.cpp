@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
     about.processCommandLine(&parser);
 
     if (parser.isSet(QStringLiteral("panel-opacity"))) {
-        PanelStyle().setOpacity(parser.value(QStringLiteral("panel-opacity")).toInt());
+        PanelStyle::applyOpacity(parser.value(QStringLiteral("panel-opacity")).toInt());
         return 0;
     }
 

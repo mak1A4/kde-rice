@@ -17,36 +17,132 @@
 
 using namespace Qt::StringLiterals;
 
-IconModel::IconModel(QObject *parent)
-    : QObject(parent)
-{
-}
-
-QString IconModel::mode() const
+// the mode of the kde-rice theme chosen now
+static QString modeNow()
 {
     const auto theme = ThemeStore::load(ThemeStore::choice().theme);
     return theme && !theme->isDark() ? u"light"_s : u"dark"_s;
 }
 
-void IconModel::bump()
+// The launchers of the panel's task manager, in order, as Plasma keeps them.
+static QStringList launchers()
 {
+    QFile file(QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + "/plasma-org.kde.plasma.desktop-appletsrc"_L1);
+    if (!file.open(QIODevice::ReadOnly)) {
+        return {};
+    }
+    static const QRegularExpression line(u"^launchers=(.*)$"_s, QRegularExpression::MultilineOption);
+    const auto match = line.match(QString::fromUtf8(file.readAll()));
+    return match.hasMatch() ? match.captured(1).split(u',', Qt::SkipEmptyParts) : QStringList();
+}
+
+// a file as a URL that changes with the file: the picture is loaded again
+// when it was replaced, and kept otherwise
+static QUrl pictureUrl(const QString &path)
+{
+    if (path.isEmpty()) {
+        return {};
+    }
+    QUrl url = QUrl::fromLocalFile(path);
+    const QFileInfo info(path);
+    url.setQuery(u"m=%1-%2"_s.arg(info.lastModified().toMSecsSinceEpoch()).arg(info.size()));
+    return url;
+}
+
+IconModel::IconModel(QObject *parent)
+    : QObject(parent)
+{
+    connect(&m_worker, &Worker::busyChanged, this, &IconModel::busyChanged);
+    // the names at once; their pictures as soon as the themes are read
+    m_state = read(false);
+    change([] {});
+}
+
+QString IconModel::pictureFor(const QString &name, const State &state)
+{
+    if (name.startsWith(u'/')) {
+        return name;
+    }
+    // where the icon theme finds it: the user's picture, kde-rice's trimmed
+    // copy, then the base's and the rest
+    QString path = IconStore::overrideFor(name);
+    if (path.isEmpty() && state.inUse) {
+        path = IconStore::trimmedFor(name);
+    }
+    for (const QString &theme : {state.baseVariant, state.base, u"Papirus"_s, u"breeze"_s, u"hicolor"_s}) {
+        if (!path.isEmpty()) {
+            break;
+        }
+        path = IconStore::file(theme, name);
+    }
+    return path;
+}
+
+IconModel::State IconModel::read(bool withPictures)
+{
+    State state;
+    state.inUse = IconStore::inUse();
+    state.base = IconStore::base();
+    state.baseVariant = IconStore::baseFor(modeNow());
+    state.trimFallbacks = IconStore::trimsFallbacks();
+
+    const QStringList all = launchers();
+    for (QString launcher : all) {
+        if (launcher == "preferred://filemanager"_L1) {
+            launcher = u"applications:org.kde.dolphin.desktop"_s;
+        }
+        if (!launcher.startsWith("applications:"_L1)) {
+            continue;
+        }
+        const QString id = launcher.mid(13);
+        const QString path = QStandardPaths::locate(QStandardPaths::ApplicationsLocation, id);
+        if (path.isEmpty()) {
+            continue;
+        }
+        KDesktopFile desktop(path);
+        const QString icon = desktop.readIcon();
+        // a picture file, not an icon of a theme's
+        const bool fixed = icon.startsWith(u'/');
+        const QString picture = withPictures ? pictureFor(icon, state) : QString();
+        const QString own = fixed ? QString() : IconStore::overrideFor(icon);
+        state.taskbar += QVariantMap{
+            {u"id"_s, id},
+            {u"name"_s, desktop.readName()},
+            {u"icon"_s, icon},
+            {u"fixed"_s, fixed},
+            {u"picture"_s, pictureUrl(picture)},
+            {u"overridden"_s, !own.isEmpty()},
+            {u"trimmed"_s, !fixed && own.isEmpty() && state.inUse && !IconStore::trimmedFor(icon).isEmpty()},
+        };
+    }
+    const QStringList names = IconStore::overrides();
+    for (const QString &name : names) {
+        state.overrides += QVariantMap{
+            {u"name"_s, name},
+            {u"picture"_s, pictureUrl(withPictures ? IconStore::overrideFor(name) : QString())},
+        };
+    }
+    return state;
+}
+
+template<typename Work>
+void IconModel::change(Work work)
+{
+    m_worker.run(
+        [work = std::move(work)] {
+            work();
+            return read(true);
+        },
+        [this](const State &state) {
+            take(state);
+        });
+}
+
+void IconModel::take(const State &state)
+{
+    m_state = state;
     ++m_revision;
     Q_EMIT changed();
-}
-
-bool IconModel::inUse() const
-{
-    return IconStore::inUse();
-}
-
-QString IconModel::base() const
-{
-    return IconStore::base();
-}
-
-QString IconModel::baseVariant() const
-{
-    return IconStore::baseFor(mode());
 }
 
 QVariantList IconModel::themes() const
@@ -69,67 +165,46 @@ bool IconModel::whiteSurInstalled() const
 
 void IconModel::use()
 {
-    IconStore::write(mode());
-    IconStore::use();
-    bump();
+    change([] {
+        IconStore::write(modeNow());
+        IconStore::use();
+    });
 }
 
 void IconModel::setBase(const QString &theme)
 {
-    IconStore::setBase(theme);
-    if (IconStore::write(mode()) && IconStore::inUse()) {
-        IconStore::reload();
+    if (theme.isEmpty() || theme == m_state.base) {
+        return;
     }
-    bump();
-}
-
-bool IconModel::trimFallbacks() const
-{
-    return IconStore::trimsFallbacks();
+    IconStore::setBase(theme);
+    m_state.base = theme;
+    Q_EMIT changed();
+    refresh();
 }
 
 void IconModel::setTrimFallbacks(bool trim)
 {
-    if (trim == IconStore::trimsFallbacks()) {
+    if (trim == m_state.trimFallbacks) {
         return;
     }
     IconStore::setTrimsFallbacks(trim);
+    m_state.trimFallbacks = trim;
+    Q_EMIT changed();
     refresh();
-    bump();
 }
 
 void IconModel::refresh()
 {
-    if (IconStore::write(mode()) && IconStore::inUse()) {
-        IconStore::reload();
-        bump();
-    }
+    change([] {
+        if (IconStore::write(modeNow()) && IconStore::inUse()) {
+            IconStore::reload();
+        }
+    });
 }
 
 QUrl IconModel::current(const QString &name) const
 {
-    if (name.startsWith(u'/')) {
-        return QUrl::fromLocalFile(name);
-    }
-    // where the icon theme finds it: the user's picture, kde-rice's trimmed
-    // copy, then the base's and the rest
-    QString path = IconStore::overrideFor(name);
-    if (path.isEmpty() && IconStore::inUse()) {
-        path = IconStore::trimmedFor(name);
-    }
-    for (const QString &theme : {baseVariant(), base(), u"Papirus"_s, u"breeze"_s, u"hicolor"_s}) {
-        if (!path.isEmpty()) {
-            break;
-        }
-        path = IconStore::file(theme, name);
-    }
-    if (path.isEmpty()) {
-        return {};
-    }
-    QUrl url = QUrl::fromLocalFile(path);
-    // a new revision is a new address: the picture is loaded again
-    url.setQuery(u"r=%1"_s.arg(m_revision));
-    return url;
+    return pictureUrl(pictureFor(name, m_state));
 }
 
 bool IconModel::overridden(const QString &name) const
@@ -137,22 +212,24 @@ bool IconModel::overridden(const QString &name) const
     return !IconStore::overrideFor(name).isEmpty();
 }
 
-bool IconModel::trimmed(const QString &name) const
+void IconModel::findCandidates(const QString &name)
 {
-    return IconStore::inUse() && IconStore::overrideFor(name).isEmpty() && !IconStore::trimmedFor(name).isEmpty();
-}
-
-QVariantList IconModel::candidates(const QString &name) const
-{
-    QVariantList list;
-    const auto installed = IconStore::installed();
-    for (const auto &theme : installed) {
-        const QStringList paths = IconStore::files(theme.id, name);
-        for (const QString &path : paths) {
-            list += QVariantMap{{u"theme"_s, theme.id}, {u"themeName"_s, theme.name}, {u"url"_s, QUrl::fromLocalFile(path)}};
+    auto watcher = new QFutureWatcher<QVariantList>(this);
+    connect(watcher, &QFutureWatcher<QVariantList>::finished, this, [this, watcher, name] {
+        watcher->deleteLater();
+        Q_EMIT candidatesFound(name, watcher->result());
+    });
+    watcher->setFuture(QtConcurrent::run([name] {
+        QVariantList list;
+        const auto installed = IconStore::installed();
+        for (const auto &theme : installed) {
+            const QStringList paths = IconStore::files(theme.id, name);
+            for (const QString &path : paths) {
+                list += QVariantMap{{u"theme"_s, theme.id}, {u"themeName"_s, theme.name}, {u"url"_s, QUrl::fromLocalFile(path)}};
+            }
         }
-    }
-    return list;
+        return list;
+    }));
 }
 
 void IconModel::search(const QString &text)
@@ -165,7 +242,7 @@ void IconModel::search(const QString &text)
     m_searching = true;
     Q_EMIT searchingChanged();
     // the base's, then every other installed theme's names
-    QStringList themes = {baseVariant(), base()};
+    QStringList themes = {m_state.baseVariant, m_state.base};
     const auto installed = IconStore::installed();
     for (const auto &theme : installed) {
         themes += theme.id;
@@ -203,72 +280,30 @@ void IconModel::search(const QString &text)
 
 bool IconModel::setIcon(const QString &name, const QUrl &picture)
 {
-    // an app icon (from a theme's apps, or a taskbar app's) is trimmed to
-    // fill its canvas, as kde-rice-whitesur's are
-    bool app = picture.toLocalFile().contains("/apps/"_L1);
-    const QVariantList apps = taskbar();
-    for (const QVariant &entry : apps) {
-        app |= entry.toMap().value(u"icon"_s).toString() == name;
-    }
-    if (!IconStore::setOverride(name, picture.toLocalFile(), app)) {
+    const QString path = picture.toLocalFile();
+    if (!IconStore::canOverride(name, path)) {
         return false;
     }
-    IconStore::reload();
-    bump();
+    // an app icon (from a theme's apps, or a taskbar app's) is trimmed to
+    // fill its canvas, as kde-rice-whitesur's are
+    bool app = path.contains("/apps/"_L1);
+    for (const QVariant &entry : std::as_const(m_state.taskbar)) {
+        app |= entry.toMap().value(u"icon"_s).toString() == name;
+    }
+    change([name, path, app] {
+        if (IconStore::setOverride(name, path, app)) {
+            IconStore::reload();
+        }
+    });
     return true;
 }
 
 void IconModel::resetIcon(const QString &name)
 {
-    IconStore::removeOverride(name);
-    IconStore::reload();
-    bump();
-}
-
-QStringList IconModel::overrides() const
-{
-    return IconStore::overrides();
-}
-
-// The launchers of the panel's task manager, in order, as Plasma keeps them.
-static QStringList launchers()
-{
-    QFile file(QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation) + "/plasma-org.kde.plasma.desktop-appletsrc"_L1);
-    if (!file.open(QIODevice::ReadOnly)) {
-        return {};
-    }
-    static const QRegularExpression line(u"^launchers=(.*)$"_s, QRegularExpression::MultilineOption);
-    const auto match = line.match(QString::fromUtf8(file.readAll()));
-    return match.hasMatch() ? match.captured(1).split(u',', Qt::SkipEmptyParts) : QStringList();
-}
-
-QVariantList IconModel::taskbar() const
-{
-    QVariantList list;
-    const QStringList all = launchers();
-    for (QString launcher : all) {
-        if (launcher == "preferred://filemanager"_L1) {
-            launcher = u"applications:org.kde.dolphin.desktop"_s;
-        }
-        if (!launcher.startsWith("applications:"_L1)) {
-            continue;
-        }
-        const QString id = launcher.mid(13);
-        const QString path = QStandardPaths::locate(QStandardPaths::ApplicationsLocation, id);
-        if (path.isEmpty()) {
-            continue;
-        }
-        KDesktopFile desktop(path);
-        const QString icon = desktop.readIcon();
-        list += QVariantMap{
-            {u"id"_s, id},
-            {u"name"_s, desktop.readName()},
-            {u"icon"_s, icon},
-            // a picture file, not an icon of a theme's
-            {u"fixed"_s, icon.startsWith(u'/')},
-        };
-    }
-    return list;
+    change([name] {
+        IconStore::removeOverride(name);
+        IconStore::reload();
+    });
 }
 
 QString IconModel::themable(const QString &desktopId)
@@ -297,10 +332,11 @@ QString IconModel::themable(const QString &desktopId)
     // Plasma reads the applications' entries again
     QProcess::startDetached(u"kbuildsycoca6"_s, {});
     // the picture it had, as its icon until another is chosen
-    if (IconStore::overrideFor(name).isEmpty() && QFileInfo(picture).isFile()) {
-        IconStore::setOverride(name, picture);
-    }
-    IconStore::reload();
-    bump();
+    change([name, picture] {
+        if (IconStore::overrideFor(name).isEmpty() && QFileInfo(picture).isFile()) {
+            IconStore::setOverride(name, picture);
+        }
+        IconStore::reload();
+    });
     return name;
 }

@@ -52,9 +52,18 @@ Kirigami.ApplicationWindow {
         actions: root.sections
     }
 
-    function show(page: Component): void {
+    // Each page is made when first shown and kept from then on: the page
+    // stack only destroys pages it made itself, so a page made by its loader
+    // comes back as it was (its scroll position, a search typed, pictures
+    // loaded) and what it reads at its start (the themes, the icon theme
+    // written) is read once, not at every click on the sidebar.
+    function show(loader: Loader): void {
+        loader.active = true;
+        if (pageStack.currentItem === loader.item) {
+            return;
+        }
         pageStack.clear();
-        pageStack.push(page);
+        pageStack.push(loader.item);
     }
 
     globalDrawer: Kirigami.GlobalDrawer {
@@ -63,11 +72,11 @@ Kirigami.ApplicationWindow {
         actions: root.sections
     }
 
-    Component { id: appearance; AppearancePage {} }
-    Component { id: iconsPage; IconsPage {} }
-    Component { id: windows; WindowsPage {} }
-    Component { id: panels; PanelsPage {} }
-    Component { id: effects; EffectsPage {} }
+    Loader { id: appearance; active: false; sourceComponent: AppearancePage {} }
+    Loader { id: iconsPage; active: false; sourceComponent: IconsPage {} }
+    Loader { id: windows; active: false; sourceComponent: WindowsPage {} }
+    Loader { id: panels; active: false; sourceComponent: PanelsPage {} }
+    Loader { id: effects; active: false; sourceComponent: EffectsPage {} }
 
     // --page on the command line, else Appearance
     Component.onCompleted: {

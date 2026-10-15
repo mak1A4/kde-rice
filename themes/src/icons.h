@@ -54,6 +54,8 @@ QStringList names(const QString &theme);
 
 // the user's own picture for an icon name, "" if there is none
 QString overrideFor(const QString &name);
+// whether setOverride would take the picture (a file, SVG or PNG) for the name
+bool canOverride(const QString &name, const QString &picture);
 // Takes a picture (an SVG or PNG) for an icon name, with `trim` an app
 // icon's SVG made to fill its canvas as kde-rice-whitesur's are (trim.h).
 // False if it cannot.

@@ -45,19 +45,34 @@ static QString stateFile()
     return QStandardPaths::writableLocation(QStandardPaths::GenericStateLocation) + "/kde-rice/plasma-style-before"_L1;
 }
 
-PanelStyle::PanelStyle(QObject *parent)
-    : QObject(parent)
-{
-}
-
-int PanelStyle::opacity() const
+static int readOpacity()
 {
     return std::clamp(settings().readEntry("Opacity", s_breezeOpacity), 0, 100);
 }
 
-bool PanelStyle::inUse() const
+PanelStyle::PanelStyle(QObject *parent)
+    : QObject(parent)
 {
-    return currentStyle() == s_style;
+    connect(&m_worker, &Worker::busyChanged, this, &PanelStyle::busyChanged);
+    read();
+    // set elsewhere too (kde-rice --panel-opacity)
+    m_watcher = KConfigWatcher::create(KSharedConfig::openConfig(u"kde-ricerc"_s));
+    connect(m_watcher.data(), &KConfigWatcher::configChanged, this, [this](const KConfigGroup &group) {
+        if (group.name() == "Panels"_L1 && !busy()) {
+            read();
+        }
+    });
+}
+
+void PanelStyle::read()
+{
+    const int opacity = readOpacity();
+    const bool inUse = currentStyle() == s_style;
+    if (opacity != m_opacity || inUse != m_inUse) {
+        m_opacity = opacity;
+        m_inUse = inUse;
+        Q_EMIT changed();
+    }
 }
 
 // Writes `contents` to `path` if that changes it. True if it did.
@@ -150,7 +165,7 @@ static QString squareMask(const QString &svg, bool square, const QString &opacit
     return result;
 }
 
-bool PanelStyle::write(int percent) const
+bool PanelStyle::write(int percent)
 {
     const QString breeze = QStandardPaths::locate(QStandardPaths::GenericDataLocation, u"plasma/desktoptheme/default"_s, QStandardPaths::LocateDirectory);
     if (breeze.isEmpty()) {
@@ -197,10 +212,31 @@ bool PanelStyle::write(int percent) const
 void PanelStyle::setOpacity(int percent)
 {
     percent = std::clamp(percent, 0, 100);
+    if (percent == m_opacity && m_inUse) {
+        return;
+    }
+    m_opacity = percent;
+    Q_EMIT changed();
+    m_worker.run(
+        [percent] {
+            applyOpacity(percent);
+        },
+        [this] {
+            read();
+        });
+}
+
+void PanelStyle::applyOpacity(int percent)
+{
+    percent = std::clamp(percent, 0, 100);
     KConfigGroup group = settings();
     group.writeEntry("Opacity", percent, KConfig::Notify);
     group.sync();
+    applyStyle(percent);
+}
 
+void PanelStyle::applyStyle(int percent)
+{
     const bool rewritten = write(percent);
     const QString current = currentStyle();
     if (current != s_style) {
@@ -214,14 +250,18 @@ void PanelStyle::setOpacity(int percent)
         QProcess::execute(u"plasma-apply-desktoptheme"_s, {u"default"_s});
         QProcess::startDetached(u"plasma-apply-desktoptheme"_s, {s_style});
     }
-    Q_EMIT changed();
 }
 
 void PanelStyle::restore()
 {
-    QFile before(stateFile());
-    const QString previous = before.open(QIODevice::ReadOnly) ? QString::fromUtf8(before.readAll()).trimmed() : QString();
-    QProcess::execute(u"plasma-apply-desktoptheme"_s, {previous.isEmpty() || previous == s_style ? u"default"_s : previous});
-    QFile::remove(stateFile());
-    Q_EMIT changed();
+    m_worker.run(
+        [] {
+            QFile before(stateFile());
+            const QString previous = before.open(QIODevice::ReadOnly) ? QString::fromUtf8(before.readAll()).trimmed() : QString();
+            QProcess::execute(u"plasma-apply-desktoptheme"_s, {previous.isEmpty() || previous == s_style ? u"default"_s : previous});
+            QFile::remove(stateFile());
+        },
+        [this] {
+            read();
+        });
 }

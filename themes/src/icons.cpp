@@ -22,6 +22,8 @@
 #include <QSaveFile>
 #include <QStandardPaths>
 
+#include <memory>
+
 using namespace Qt::StringLiterals;
 
 namespace IconStore
@@ -400,14 +402,15 @@ void use()
 // each would run into systemd's limit and leave Plasma stopped.
 static void restartPlasma()
 {
-    // (a restart already waiting: systemd says so, and that one is it)
+    // (a restart already waiting: systemd says so, and that one is it; not
+    // waited for, so that the caller's thread is not held up)
     QProcess process;
+    process.setProgram(u"systemd-run"_s);
+    process.setArguments({u"--user"_s, u"--quiet"_s, u"--on-active=2"_s, u"--unit=kde-rice-plasma-restart"_s, u"--timer-property=AccuracySec=100ms"_s,
+                          u"systemctl"_s, u"--user"_s, u"restart"_s, u"plasma-plasmashell.service"_s});
     process.setStandardOutputFile(QProcess::nullDevice());
     process.setStandardErrorFile(QProcess::nullDevice());
-    process.start(u"systemd-run"_s,
-                  {u"--user"_s, u"--quiet"_s, u"--on-active=2"_s, u"--unit=kde-rice-plasma-restart"_s, u"--timer-property=AccuracySec=100ms"_s,
-                   u"systemctl"_s, u"--user"_s, u"restart"_s, u"plasma-plasmashell.service"_s});
-    process.waitForFinished(5000);
+    process.startDetached();
 }
 
 void reload()
@@ -458,11 +461,14 @@ QList<Theme> installed()
     return found;
 }
 
-// every icon of a theme: name -> its files, read once
+// every icon of a theme: name -> its files, read once. Reading a theme
+// walks its whole tree (Papirus: tens of thousands of files), which any
+// thread may do; the lock covers only the table of what has been read, and
+// each index is shared, so that one being used is never moved under its user.
 struct Index {
     QHash<QString, QStringList> files;
 };
-static QHash<QString, Index> s_indexes;
+static QHash<QString, std::shared_ptr<const Index>> s_indexes;
 static QMutex s_lock;
 
 static int sizeOf(const QString &path)
@@ -480,14 +486,16 @@ static int sizeOf(const QString &path)
     return best;
 }
 
-static const Index &indexOf(const QString &theme)
+static std::shared_ptr<const Index> indexOf(const QString &theme)
 {
-    QMutexLocker locker(&s_lock);
-    auto it = s_indexes.find(theme);
-    if (it != s_indexes.end()) {
-        return *it;
+    {
+        QMutexLocker locker(&s_lock);
+        const auto it = s_indexes.constFind(theme);
+        if (it != s_indexes.cend()) {
+            return *it;
+        }
     }
-    Index index;
+    auto index = std::make_shared<Index>();
     QStringList roots = theme == themeName() ? QStringList{overridesDir()} : themePaths(theme);
     // what applications put outside any theme, found after hicolor as KDE does
     if (theme == "hicolor"_L1) {
@@ -498,26 +506,31 @@ static const Index &indexOf(const QString &theme)
         while (files.hasNext()) {
             const QString path = files.next();
             // symbolic variants are another icon of their own
-            index.files[QFileInfo(path).completeBaseName()] += path;
+            index->files[QFileInfo(path).completeBaseName()] += path;
         }
     }
-    {
-        for (QStringList &paths : index.files) {
-            std::sort(paths.begin(), paths.end(), [](const QString &a, const QString &b) {
-                const bool svgA = !a.endsWith(".png"_L1), svgB = !b.endsWith(".png"_L1);
-                if (svgA != svgB) {
-                    return svgA;
-                }
-                return sizeOf(a) > sizeOf(b);
-            });
-        }
+    for (QStringList &paths : index->files) {
+        std::sort(paths.begin(), paths.end(), [](const QString &a, const QString &b) {
+            const bool svgA = !a.endsWith(".png"_L1), svgB = !b.endsWith(".png"_L1);
+            if (svgA != svgB) {
+                return svgA;
+            }
+            return sizeOf(a) > sizeOf(b);
+        });
     }
-    return *s_indexes.insert(theme, index);
+    QMutexLocker locker(&s_lock);
+    // another thread read it meanwhile: theirs is the one kept
+    const auto it = s_indexes.constFind(theme);
+    if (it != s_indexes.cend()) {
+        return *it;
+    }
+    s_indexes.insert(theme, index);
+    return index;
 }
 
 QString file(const QString &theme, const QString &name)
 {
-    return indexOf(theme).files.value(name).value(0);
+    return indexOf(theme)->files.value(name).value(0);
 }
 
 QStringList files(const QString &theme, const QString &name)
@@ -526,7 +539,7 @@ QStringList files(const QString &theme, const QString &name)
     // first of each is its largest
     QStringList kept;
     QStringList kinds;
-    const QStringList all = indexOf(theme).files.value(name);
+    const QStringList all = indexOf(theme)->files.value(name);
     for (const QString &path : all) {
         const QString kind = QFileInfo(QFileInfo(path).absolutePath()).fileName();
         static const QRegularExpression sized(u"^\\d+(x\\d+)?(@\\dx)?$"_s);
@@ -542,7 +555,7 @@ QStringList files(const QString &theme, const QString &name)
 
 QStringList names(const QString &theme)
 {
-    QStringList all = indexOf(theme).files.keys();
+    QStringList all = indexOf(theme)->files.keys();
     all.sort();
     return all;
 }
@@ -755,14 +768,21 @@ bool trimOverride(const QString &name)
     return false;
 }
 
-bool setOverride(const QString &name, const QString &picture, bool trim)
+bool canOverride(const QString &name, const QString &picture)
 {
     static const QRegularExpression safe(u"^[A-Za-z0-9._+-]+$"_s);
     const QFileInfo source(picture);
     const QString suffix = source.suffix().toLower();
-    if (!safe.match(name).hasMatch() || !source.isFile() || (suffix != "svg"_L1 && suffix != "svgz"_L1 && suffix != "png"_L1)) {
+    return safe.match(name).hasMatch() && source.isFile() && (suffix == "svg"_L1 || suffix == "svgz"_L1 || suffix == "png"_L1);
+}
+
+bool setOverride(const QString &name, const QString &picture, bool trim)
+{
+    if (!canOverride(name, picture)) {
         return false;
     }
+    const QFileInfo source(picture);
+    const QString suffix = source.suffix().toLower();
     QDir().mkpath(overridesDir());
     const QString target = overridesDir() + u'/' + name + u'.' + suffix;
     const QString part = target + ".part"_L1;

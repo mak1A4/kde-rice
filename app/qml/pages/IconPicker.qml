@@ -17,14 +17,32 @@ Kirigami.Dialog {
     // the name whose pictures are shown (the same, or one searched for)
     property string shown
     property var found: []
+    // every theme's pictures of `shown`, once found (every theme is read for
+    // them, off the GUI thread; `finding` meanwhile)
+    property var candidates: []
+    property bool finding: false
 
     function choose(iconName) {
         name = iconName;
-        shown = iconName;
         search.text = "";
         found = [];
+        if (shown === iconName) {
+            show();
+        } else {
+            shown = iconName;
+        }
         open();
     }
+
+    function show() {
+        candidates = [];
+        finding = shown !== "";
+        if (finding) {
+            icons.findCandidates(shown);
+        }
+    }
+
+    onShownChanged: show()
 
     title: i18n("Icon for %1", name)
     preferredWidth: Kirigami.Units.gridUnit * 40
@@ -41,7 +59,10 @@ Kirigami.Dialog {
         Kirigami.Action {
             text: i18n("Back to %1's", picker.icons.baseVariant)
             icon.name: "edit-undo"
-            enabled: picker.icons.overridden(picker.name) || picker.icons.revision < 0
+            enabled: {
+                picker.icons.revision;
+                return !picker.icons.busy && picker.icons.overridden(picker.name);
+            }
             onTriggered: {
                 picker.icons.resetIcon(picker.name);
                 picker.close();
@@ -65,6 +86,12 @@ Kirigami.Dialog {
         function onSearchFinished(text, names) {
             if (text === search.text) {
                 picker.found = names;
+            }
+        }
+        function onCandidatesFound(name, candidates) {
+            if (name === picker.shown) {
+                picker.candidates = candidates;
+                picker.finding = false;
             }
         }
     }
@@ -119,7 +146,7 @@ Kirigami.Dialog {
             clip: true
             cellWidth: Kirigami.Units.gridUnit * 6
             cellHeight: Kirigami.Units.gridUnit * 6.5
-            model: picker.shown === "" ? [] : picker.icons.candidates(picker.shown)
+            model: picker.candidates
 
             delegate: QQC2.ItemDelegate {
                 required property var modelData
@@ -155,10 +182,16 @@ Kirigami.Dialog {
                 QQC2.ToolTip.delay: Kirigami.Units.toolTipDelay
             }
 
+            QQC2.BusyIndicator {
+                anchors.centerIn: parent
+                running: picker.finding
+                visible: running
+            }
+
             Kirigami.PlaceholderMessage {
                 anchors.centerIn: parent
                 width: parent.width - Kirigami.Units.gridUnit * 4
-                visible: grid.count === 0
+                visible: grid.count === 0 && !picker.finding
                 text: i18n("No theme has “%1”", picker.shown)
                 explanation: i18n("Search for another name above, or use a file of your own.")
             }

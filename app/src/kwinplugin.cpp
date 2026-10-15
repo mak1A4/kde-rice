@@ -42,24 +42,22 @@ void KWinPlugin::componentComplete()
 
 QString KWinPlugin::name() const
 {
-    const KPluginMetaData data = metaData(m_id);
-    return data.isValid() ? data.name() : m_id;
+    return m_data.isValid() ? m_data.name() : m_id;
 }
 
 QString KWinPlugin::description() const
 {
-    return metaData(m_id).description();
+    return m_data.description();
 }
 
 bool KWinPlugin::installed() const
 {
-    return !m_id.isEmpty() && metaData(m_id).isValid();
+    return !m_id.isEmpty() && m_data.isValid();
 }
 
 bool KWinPlugin::enabled() const
 {
-    const KPluginMetaData data = metaData(m_id);
-    return pluginsGroup().readEntry(m_id + "Enabled"_L1, data.isValid() && data.isEnabledByDefault());
+    return pluginsGroup().readEntry(m_id + "Enabled"_L1, m_data.isValid() && m_data.isEnabledByDefault());
 }
 
 void KWinPlugin::setEnabled(bool enabled)
@@ -84,6 +82,7 @@ void KWinPlugin::setEnabled(bool enabled)
 
 void KWinPlugin::refresh()
 {
+    m_data = m_id.isEmpty() ? KPluginMetaData() : metaData(m_id);
     Q_EMIT enabledChanged();
     if (m_id.isEmpty()) {
         setLoaded(false);

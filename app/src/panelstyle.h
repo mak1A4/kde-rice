@@ -1,5 +1,9 @@
 #pragma once
 
+#include "worker.h"
+
+#include <KConfigWatcher>
+
 #include <QObject>
 #include <QQmlEngine>
 
@@ -13,6 +17,9 @@
 //
 // `[Panels] Opacity` in kde-ricerc, in percent. The panel itself has to be
 // translucent or adaptive in its settings.
+//
+// Writing the style reads every picture of Breeze's and applies the style
+// anew, seconds of work: done off the GUI thread (`busy` meanwhile).
 class PanelStyle : public QObject
 {
     Q_OBJECT
@@ -22,20 +29,44 @@ class PanelStyle : public QObject
     Q_PROPERTY(int opacity READ opacity WRITE setOpacity NOTIFY changed)
     // kde-rice's Plasma style is the one in use
     Q_PROPERTY(bool inUse READ inUse NOTIFY changed)
+    // the style being written and applied
+    Q_PROPERTY(bool busy READ busy NOTIFY busyChanged)
 
 public:
     explicit PanelStyle(QObject *parent = nullptr);
 
-    int opacity() const;
+    int opacity() const
+    {
+        return m_opacity;
+    }
     void setOpacity(int percent);
-    bool inUse() const;
+    bool inUse() const
+    {
+        return m_inUse;
+    }
+    bool busy() const
+    {
+        return m_worker.busy();
+    }
 
     // Back to the Plasma style there was before kde-rice's.
     Q_INVOKABLE void restore();
 
+    // Sets the opacity and writes and applies the style, waiting for it
+    // (the command line).
+    static void applyOpacity(int percent);
+
 Q_SIGNALS:
     void changed();
+    void busyChanged();
 
 private:
-    bool write(int percent) const;
+    static bool write(int percent);
+    static void applyStyle(int percent);
+    void read();
+
+    int m_opacity = 85;
+    bool m_inUse = false;
+    Worker m_worker;
+    KConfigWatcher::Ptr m_watcher;
 };

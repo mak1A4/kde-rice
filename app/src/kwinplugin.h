@@ -1,5 +1,7 @@
 #pragma once
 
+#include <KPluginMetaData>
+
 #include <QObject>
 #include <QQmlEngine>
 #include <QQmlParserStatus>
@@ -51,5 +53,7 @@ private:
     void setLoaded(bool loaded);
 
     QString m_id;
+    // the plugin's, looked up once per id (a scan of the plugin directories)
+    KPluginMetaData m_data;
     bool m_loaded = false;
 };
