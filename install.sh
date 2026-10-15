@@ -77,9 +77,11 @@ if [ "$(kreadconfig6 --file plasmarc --group Theme --key name)" = kde-rice ]; th
     echo "made kde-rice's Plasma style again"
 fi
 
-# the background programs, as the new build
+# the background programs, as the new build. Found by the program in their
+# command line: the name pkill -x knows is cut at 15 characters
+# (kde-rice-launch).
 restart() {
-    if pkill -x "$1"; then
+    if pkill -f "^([^ ]*/)?$1( |\$)"; then
         sleep 0.5
         shift
         setsid "$@" > /dev/null 2>&1 < /dev/null &
@@ -88,8 +90,9 @@ restart() {
     fi
     return 1
 }
-restart kde-rice-launcher kde-rice-launcher --background
-restart kde-rice-gaps kde-rice-gaps
+# (one that is not running stays so, and the rest goes on)
+restart kde-rice-launcher kde-rice-launcher --background || true
+restart kde-rice-gaps kde-rice-gaps || true
 # the tray's entries that follow the icon theme: started now if they are not
 # running yet (later, by the autostart entry at login)
 if ! restart kde-rice-tray kde-rice-tray; then
