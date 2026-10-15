@@ -47,7 +47,10 @@ add_custom_command(
 )
 add_custom_target(kderice_whitesur ALL DEPENDS ${themes}/kde-rice-whitesur/index.theme)
 
-install(DIRECTORY ${themes}/ DESTINATION ${KDE_INSTALL_ICONDIR} USE_SOURCE_PERMISSIONS)
+# its own component, packaged on its own (packaging/PKGBUILD:
+# kde-rice-whitesur-git), as its ~44000 files are most of what installing
+# takes; the rest is in kde-rice's component (ECM's default)
+install(DIRECTORY ${themes}/ DESTINATION ${KDE_INSTALL_ICONDIR} USE_SOURCE_PERMISSIONS COMPONENT whitesur)
 
 # kde-rice's tray glyphs for applications that hand the tray a picture of
 # their own (themes/src/applier.cpp draws them in the mode's colour)

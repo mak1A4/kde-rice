@@ -1,0 +1,9 @@
+#!/bin/sh
+# What kde-rice-whitesur-git is made from, as one sum: WhiteSur's release
+# and the commands that build it (icons/CMakeLists.txt), kde-rice's own
+# pictures put in (icons/extra/, icons/tray/) and the trimming of the app
+# icons. The package installs it as /usr/share/kde-rice/whitesur-inputs;
+# ../install.sh builds the package again only when it differs.
+cd "$(dirname "$0")/.." || exit 1
+find icons/CMakeLists.txt icons/extra icons/tray themes/cli/trim.cpp themes/src/trim.cpp themes/src/trim.h -type f \
+    | LC_ALL=C sort | xargs sha256sum | sha256sum | cut -d' ' -f1

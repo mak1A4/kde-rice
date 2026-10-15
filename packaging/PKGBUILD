@@ -4,7 +4,17 @@
 #
 # The KWin plugins and the decoration are built against the KWin installed
 # now: run it again after each Plasma update.
-pkgname=kde-rice-git
+#
+# Two packages from one build: kde-rice-git, and kde-rice-whitesur-git with
+# kde-rice's icons (WhiteSur's ~44000 files, which take most of the time to
+# package and install). With KDERICE_WHITESUR=0 only kde-rice-git is made:
+# install.sh does that when what the icons are made from has not changed
+# (whitesur-inputs).
+pkgbase=kde-rice-git
+pkgname=(kde-rice-git kde-rice-whitesur-git)
+if [ "${KDERICE_WHITESUR:-1}" = 0 ]; then
+    pkgname=(kde-rice-git)
+fi
 pkgver=r23.c9c2501
 pkgrel=1
 pkgdesc="One place to customize KDE Plasma: a hub application and the KWin and Plasma parts it switches on"
@@ -43,6 +53,18 @@ build() {
     cmake --build build
 }
 
-package() {
-    DESTDIR="$pkgdir" cmake --install build
+package_kde-rice-git() {
+    depends+=(kde-rice-whitesur-git)
+    DESTDIR="$pkgdir" cmake --install build --component kde-rice
+}
+
+package_kde-rice-whitesur-git() {
+    pkgdesc="kde-rice's icons: WhiteSur, with -light and -dark variants and kde-rice's own pictures"
+    arch=(any)
+    depends=()
+    optdepends=()
+    provides=(kde-rice-whitesur)
+    conflicts=(kde-rice-whitesur)
+    DESTDIR="$pkgdir" cmake --install build --component whitesur
+    install -Dm644 /dev/stdin "$pkgdir/usr/share/kde-rice/whitesur-inputs" <<< "$("$startdir/whitesur-inputs")"
 }

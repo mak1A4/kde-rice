@@ -29,9 +29,12 @@ add_executable(kde-rice-theme cli/main.cpp)
 target_link_libraries(kde-rice-theme PRIVATE kderice_themes)
 install(TARGETS kde-rice-theme ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
 
-# for building kde-rice-whitesur (icons/), not installed
-add_executable(kde-rice-trim-icons cli/trim.cpp)
-target_link_libraries(kde-rice-trim-icons PRIVATE kderice_themes)
+# for building kde-rice-whitesur (icons/), not installed. Built from the
+# trimming alone, not the library: a change to the rest of the themes' code
+# would relink it and build WhiteSur again.
+add_executable(kde-rice-trim-icons cli/trim.cpp src/trim.cpp)
+target_include_directories(kde-rice-trim-icons PRIVATE src)
+target_link_libraries(kde-rice-trim-icons PRIVATE Qt6::Gui PkgConfig::RSVG)
 
 install(DIRECTORY data/ DESTINATION ${KDE_INSTALL_DATADIR}/kde-rice/themes)
 install(DIRECTORY templates/ DESTINATION ${KDE_INSTALL_DATADIR}/kde-rice/templates)

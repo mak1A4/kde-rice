@@ -14,6 +14,10 @@
 # installed for everyone so that it finds it). Plasma keeps the
 # wallpaper's code and the icons it has drawn until it restarts: if either
 # changed, Plasma (the desktop and the panels, not the windows) is restarted.
+#
+# kde-rice's icons are a package of their own (kde-rice-whitesur-git), built
+# and installed only when what they are made from changed
+# (packaging/whitesur-inputs).
 set -e
 
 repo=$(cd "$(dirname "$0")" && pwd)
@@ -29,14 +33,14 @@ wallpaper=/usr/share/plasma/wallpapers/io.github.mak1a4.kde-rice.background
 
 before=$(sums)
 wallpaper_before=$(cat "$wallpaper"/contents/ui/*.qml 2> /dev/null | md5sum)
-# Plasma keeps the icons it has drawn by their file's name, not by what is
-# in the file: when kde-rice's icons change, it is restarted too
-icons_sum() {
-    cat /usr/share/icons/kde-rice-whitesur/apps/scalable/*.svg 2> /dev/null | md5sum
-}
-icons_before=$(icons_sum)
 
 cd "$repo/packaging"
+
+# the icons' package too, if what they are made from is not what is
+# installed. Plasma keeps the icons it has drawn by their file's name, not
+# by what is in the file: when they change, it is restarted too.
+whitesur=0
+[ "$(cat /usr/share/kde-rice/whitesur-inputs 2> /dev/null)" = "$(./whitesur-inputs)" ] || whitesur=1
 
 # What it needs to build and run and is not installed yet (rarely anything):
 # installed first, which is then a question for the password of its own.
@@ -47,9 +51,11 @@ if [ -n "$missing" ]; then
     sudo pacman -S --needed --asdeps --noconfirm $missing
 fi
 
-rm -f kde-rice-git-*.pkg.tar.zst
-makepkg --force --noconfirm
+rm -f kde-rice-git-*.pkg.tar.zst kde-rice-whitesur-git-*.pkg.tar.zst
+KDERICE_WHITESUR=$whitesur makepkg --force --noconfirm
 package=$(ls "$PWD"/kde-rice-git-*.pkg.tar.zst)
+icon_package=
+[ "$whitesur" = 0 ] || icon_package=$(ls "$PWD"/kde-rice-whitesur-git-*.pkg.tar.zst)
 
 # The login screen needs its icon theme installed for everyone.
 papirus=
@@ -65,10 +71,12 @@ getent passwd plasmalogin > /dev/null && login=yes
 # asked)
 sudo sh -c '
     set -e
-    pacman -U --noconfirm "$1"
-    [ -z "$2" ] || pacman -S --needed --noconfirm "$2"
-    [ -z "$3" ] || /usr/lib/kde-rice/login-screen
-' sh "$package" "$papirus" "$login"
+    papirus=$1 login=$2
+    shift 2
+    pacman -U --noconfirm "$@"
+    [ -z "$papirus" ] || pacman -S --needed --noconfirm "$papirus"
+    [ -z "$login" ] || /usr/lib/kde-rice/login-screen
+' sh "$papirus" "$login" "$package" ${icon_package:+"$icon_package"}
 
 # kde-rice's Plasma style, if it is the one in use, made again by the new
 # build
@@ -100,7 +108,7 @@ if ! restart kde-rice-tray kde-rice-tray; then
     echo "started kde-rice-tray"
 fi
 
-if { [ "$(cat "$wallpaper"/contents/ui/*.qml 2> /dev/null | md5sum)" != "$wallpaper_before" ] || [ "$(icons_sum)" != "$icons_before" ]; } \
+if { [ "$(cat "$wallpaper"/contents/ui/*.qml 2> /dev/null | md5sum)" != "$wallpaper_before" ] || [ "$whitesur" = 1 ]; } \
     && pgrep -x plasmashell > /dev/null; then
     systemctl --user restart plasma-plasmashell.service
     echo "restarted Plasma for the new wallpaper or icons"

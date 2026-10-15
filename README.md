@@ -202,7 +202,9 @@ sudo cmake --install build        # the KWin parts only work installed
 Or as a package, the way to install it here: **`./install.sh`**. It builds
 the pacman package from this checkout, installs it (asking for the password
 once), starts the launcher and the gaps again in their new build, and says
-when KWin's parts changed and need a new login.
+when KWin's parts changed and need a new login. The icons are a package of
+their own (`kde-rice-whitesur-git`), made and installed again only when what
+they are built from changed (`packaging/whitesur-inputs`).
 
 Options: `-DKDERICE_APP=OFF`, `-DKDERICE_THEMES=OFF`, `-DKDERICE_LAUNCHER=OFF`,
 `-DKDERICE_ICONS=OFF`, `-DKDERICE_TRAY=OFF`, `-DKDERICE_GAPS=OFF`, `-DKDERICE_KWIN_PLUGINS=OFF`,
