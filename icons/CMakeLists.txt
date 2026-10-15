@@ -55,3 +55,9 @@ install(DIRECTORY ${themes}/ DESTINATION ${KDE_INSTALL_ICONDIR} USE_SOURCE_PERMI
 # kde-rice's tray glyphs for applications that hand the tray a picture of
 # their own (themes/src/applier.cpp draws them in the mode's colour)
 install(DIRECTORY tray/ DESTINATION ${KDE_INSTALL_DATADIR}/kde-rice/tray)
+
+# kde-rice's own one-colour glyphs for icon names of the panel (the
+# launcher's K, the weather applet before it is set up): part of the kde-rice
+# icon theme like the user's own pictures, coloured with the theme, below
+# theirs and above the base's (themes/src/icons.cpp)
+install(DIRECTORY glyphs/ DESTINATION ${KDE_INSTALL_DATADIR}/kde-rice/glyphs)

@@ -108,7 +108,11 @@ copy of its entry naming an icon of its own, which then can be changed too.
 The base's status icons (the tray's) are coloured in the kde-rice theme's
 text colour, the colour Plasma draws the clock in: copies in
 `~/.local/share/icons/kde-rice/tinted`, made again when the theme or the base
-changes (Plasma is restarted then, as it keeps the icons it has drawn).
+changes (Plasma is restarted then, as it keeps the icons it has drawn). So
+are your own one-colour pictures (those declaring a `ColorScheme-Text`
+colour) and kde-rice's own glyphs (`icons/glyphs`: the launcher's K, in
+KDE's blue on a light panel; the weather applet's cloud before it is set
+up), which come below yours and above the base's.
 Teams and Outlook (the Electron ones), which hand the tray a picture of their
 own, get kde-rice's glyphs (`icons/tray`) in the same colour, through their
 config.json.

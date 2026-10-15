@@ -53,6 +53,13 @@ QString overridesDir()
     return QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/kde-rice/icons"_L1;
 }
 
+// kde-rice's own one-colour glyphs (icons/glyphs: the launcher's K, the
+// weather applet's cloud), used like the user's own pictures, below theirs
+static QString glyphsDir()
+{
+    return QStandardPaths::locate(QStandardPaths::GenericDataLocation, u"kde-rice/glyphs"_s, QStandardPaths::LocateDirectory);
+}
+
 // where icon themes are, the user's first
 static QStringList iconDirs()
 {
@@ -196,15 +203,17 @@ static bool tint(const QString &theme, const QString &colour, const QString &lau
     if (!colour.isEmpty()) {
         dirs = statusDirs(theme);
     }
-    // the user's own one-colour pictures are part of it (they are coloured
-    // too); their other pictures are not
+    // kde-rice's glyphs and the user's own one-colour pictures are part of it
+    // (they are coloured too); their other pictures are not
     // the version of how the copies are made: a newer kde-rice makes them again
     QString stamp = u"3|"_s + theme + u'|' + colour + u'|' + launcher;
-    const auto mineNow = QDir(overridesDir()).entryInfoList({u"*.svg"_s}, QDir::Files, QDir::Name);
-    for (const QFileInfo &file : mineNow) {
-        QFile in(file.absoluteFilePath());
-        if (in.open(QIODevice::ReadOnly) && in.read(8192).contains("ColorScheme-Text")) {
-            stamp += u'|' + file.fileName() + u':' + QString::number(file.size()) + u':' + QString::number(file.lastModified().toSecsSinceEpoch());
+    for (const QString &dir : {glyphsDir(), overridesDir()}) {
+        const auto files = QDir(dir).entryInfoList({u"*.svg"_s}, QDir::Files, QDir::Name);
+        for (const QFileInfo &file : files) {
+            QFile in(file.absoluteFilePath());
+            if (in.open(QIODevice::ReadOnly) && in.read(8192).contains("ColorScheme-Text")) {
+                stamp += u'|' + file.fileName() + u':' + QString::number(file.size()) + u':' + QString::number(file.lastModified().toSecsSinceEpoch());
+            }
         }
     }
     QFile current(tinted + u'/' + s_stamp);
@@ -242,12 +251,18 @@ static bool tint(const QString &theme, const QString &colour, const QString &lau
         dirs.clear();
         return true;
     }
+    // the names kde-rice's glyphs and the user's pictures are for: not the base's
     const QStringList own = overrides();
+    QStringList glyphs;
+    const auto shipped = QDir(glyphsDir()).entryInfoList({u"*.svg"_s}, QDir::Files, QDir::Name);
+    for (const QFileInfo &file : shipped) {
+        glyphs += file.completeBaseName();
+    }
     for (const auto &[dir, entries] : std::as_const(dirs)) {
         QDir().mkpath(tinted + u'/' + dir);
         const auto files = QDir(root + u'/' + dir).entryInfoList({u"*.svg"_s}, QDir::Files);
         for (const QFileInfo &file : files) {
-            if (own.contains(file.completeBaseName())) {
+            if (own.contains(file.completeBaseName()) || glyphs.contains(file.completeBaseName())) {
                 continue;
             }
             QFile in(file.absoluteFilePath());
@@ -265,12 +280,19 @@ static bool tint(const QString &theme, const QString &colour, const QString &lau
             }
         }
     }
-    // the user's own one-colour pictures (a tray glyph made in WhiteSur's
-    // style, a launcher glyph): theirs, coloured too, before everything else;
-    // the launcher's (start-here) in its own colour
+    // kde-rice's glyphs and the user's own one-colour pictures (a tray glyph
+    // made in WhiteSur's style, a launcher glyph): coloured too, before
+    // everything else; the launcher's (start-here) in its own colour. A name
+    // the user has any picture for is theirs, whatever kind it is.
     QDir().mkpath(tinted + "/own"_L1);
-    const auto mine = QDir(overridesDir()).entryInfoList({u"*.svg"_s}, QDir::Files);
-    for (const QFileInfo &file : mine) {
+    QList<QFileInfo> mine;
+    for (const QFileInfo &file : shipped) {
+        if (!own.contains(file.completeBaseName())) {
+            mine += file;
+        }
+    }
+    mine += QDir(overridesDir()).entryInfoList({u"*.svg"_s}, QDir::Files);
+    for (const QFileInfo &file : std::as_const(mine)) {
         QFile in(file.absoluteFilePath());
         if (!in.open(QIODevice::ReadOnly)) {
             continue;
