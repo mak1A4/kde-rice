@@ -1,0 +1,7 @@
+{
+    "KPlugin": {
+        "Description": "Popups, tooltips and notifications across the gaps kde-rice keeps along the screen's edges: tooltips against the panel, notifications in line with the windows",
+        "EnabledByDefault": true,
+        "Name": "Popups across the gaps (kde-rice)"
+    }
+}

@@ -6,3 +6,4 @@ find_package(KDecoration3 REQUIRED)
 find_package(KWin REQUIRED)
 
 add_subdirectory(roundcorners)
+add_subdirectory(gaps)

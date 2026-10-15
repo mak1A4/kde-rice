@@ -95,6 +95,13 @@ the panel and Plasma keeps it floating (it un-floats a panel whose window a
 window overlaps). Switched on, with the gap's size, on the hub's Windows page
 (`[Gaps] Enabled`, `Size` in `kde-ricerc`); it runs at login when on.
 
+The strips also shrink the area KWin keeps menus in and Plasma places its
+tooltips and notifications by, so a KWin plugin (`kwin/plugins/gaps`, on by
+default, idle while the gaps are off) gives that room back: menus are
+placed as without the strips, the panel's tooltips sit against the panel,
+and notifications line up with the windows (the stack's corner where a
+maximized window's is), where Plasma's own spacing came on top of the gap.
+
 ## Desktop widgets
 
 Widgets for the desktop (Add Widgets, then search "kde-rice"), each on a
