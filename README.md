@@ -112,7 +112,13 @@ changes (Plasma is restarted then, as it keeps the icons it has drawn). So
 are your own one-colour pictures (those declaring a `ColorScheme-Text`
 colour) and kde-rice's own glyphs (`icons/glyphs`: the launcher's K, in
 KDE's blue on a light panel; the weather applet's cloud before it is set
-up), which come below yours and above the base's.
+up; the tray's microphone), which come below yours and above the base's.
+The Show Desktop applet draws its icon larger than the tray's; a glyph the
+size of theirs is `kde-rice-show-desktop`, set as the applet's icon with
+`qdbus6 org.kde.plasmashell /PlasmaShell evaluateScript 'for (const p of
+panels()) for (const w of p.widgets("org.kde.plasma.showdesktop")) {
+w.currentConfigGroup = ["General"]; w.writeConfig("icon",
+"kde-rice-show-desktop"); w.reloadConfig(); }'`.
 Teams and Outlook (the Electron ones), which hand the tray a picture of their
 own, get kde-rice's glyphs (`icons/tray`) in the same colour, through their
 config.json.

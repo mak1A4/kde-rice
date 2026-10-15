@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Show Desktop in the panel (kde-rice-show-desktop, the Show Desktop applet's icon set to it: the README's Icons): a screen with its panel, outlined in WhiteSur's tray style. The applet draws its icon at Plasma's medium size (32), larger than the tray's glyphs (22), so the drawing is padded to come out their size; kde-rice colours it with the theme -->
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+ <defs><style id="current-color-scheme" type="text/css">.ColorScheme-Text { color:#363636; }</style></defs>
+ <g class="ColorScheme-Text" fill="none" stroke="currentColor" stroke-width="1">
+  <rect x="7.5" y="9.5" width="17" height="13" rx="2.5"/>
+ </g>
+ <rect class="ColorScheme-Text" fill="currentColor" x="10" y="18.75" width="12" height="1.5" rx="0.75"/>
+</svg>
