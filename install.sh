@@ -14,6 +14,8 @@
 # installed for everyone so that it finds it). Plasma keeps the
 # wallpaper's code and the icons it has drawn until it restarts: if either
 # changed, Plasma (the desktop and the panels, not the windows) is restarted.
+# So it is when the desktop widgets (plasmoids/) changed: Plasma keeps their
+# code too.
 #
 # kde-rice's icons are a package of their own (kde-rice-whitesur-git), built
 # and installed only when what they are made from changed
@@ -30,9 +32,15 @@ sums() {
 }
 
 wallpaper=/usr/share/plasma/wallpapers/io.github.mak1a4.kde-rice.background
+plasmoids=/usr/share/plasma/plasmoids
+
+# the QML Plasma keeps once loaded: the wallpaper's and the widgets'
+plasma_qml() {
+    find "$wallpaper" "$plasmoids"/io.github.mak1a4.kde-rice.* -type f 2> /dev/null | sort | xargs -r cat | md5sum
+}
 
 before=$(sums)
-wallpaper_before=$(cat "$wallpaper"/contents/ui/*.qml 2> /dev/null | md5sum)
+plasma_before=$(plasma_qml)
 
 cd "$repo/packaging"
 
@@ -108,10 +116,17 @@ if ! restart kde-rice-tray kde-rice-tray; then
     echo "started kde-rice-tray"
 fi
 
-if { [ "$(cat "$wallpaper"/contents/ui/*.qml 2> /dev/null | md5sum)" != "$wallpaper_before" ] || [ "$whitesur" = 1 ]; } \
+# Copies of kde-rice's widgets in the home directory (left from trying one
+# out) would be loaded in place of the installed ones.
+if rm -rv "$HOME"/.local/share/plasma/plasmoids/io.github.mak1a4.kde-rice.* 2> /dev/null | grep -q .; then
+    plasma_before=
+    echo "removed kde-rice's widgets from ~/.local/share/plasma/plasmoids"
+fi
+
+if { [ "$(plasma_qml)" != "$plasma_before" ] || [ "$whitesur" = 1 ]; } \
     && pgrep -x plasmashell > /dev/null; then
     systemctl --user restart plasma-plasmashell.service
-    echo "restarted Plasma for the new wallpaper or icons"
+    echo "restarted Plasma for the new wallpaper, widgets or icons"
 fi
 
 echo

@@ -1,0 +1,15 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [{ "Name": "mak1A4" }],
+        "Category": "System Information",
+        "Description": "CPU, memory, GPU and temperature as rings in the theme's colours, on frosted glass over the kde-rice background",
+        "Icon": "utilities-system-monitor",
+        "Id": "io.github.mak1a4.kde-rice.rings",
+        "License": "GPL",
+        "Name": "System Rings (kde-rice)",
+        "Version": "1"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0",
+    "X-Plasma-FormFactors": "desktop"
+}

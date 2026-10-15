@@ -1,0 +1,15 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [{ "Name": "mak1A4" }],
+        "Category": "Multimedia",
+        "Description": "What is playing, with its cover and controls, on frosted glass over the kde-rice background",
+        "Icon": "media-playback-start",
+        "Id": "io.github.mak1a4.kde-rice.nowplaying",
+        "License": "GPL",
+        "Name": "Now Playing (kde-rice)",
+        "Version": "1"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0",
+    "X-Plasma-FormFactors": "desktop"
+}

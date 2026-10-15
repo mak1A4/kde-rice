@@ -17,10 +17,11 @@ be changed from outside is changed from here, and Plasma updates stay a
 | `icons/` | kde-rice-whitesur: WhiteSur built from its sources and shipped with kde-rice, the base of kde-rice's icon theme | bash, gtk-update-icon-cache |
 | `tray/` | `kde-rice-tray`: tray entries that name a theme icon in place of applications' that send a picture | Qt D-Bus |
 | `gaps/` | `kde-rice-gaps`: room kept free along the screen's edges, so maximized windows keep a gap and a floating panel keeps floating | LayerShellQt |
+| `plasmoids/` | Desktop widgets on frosted glass: Now Playing, System Rings | Plasma (QML) |
 | `kwin/plugins/` | KWin plugins (C++), e.g. rounded corners on every window | KWin's internal API |
 | `kwin/decoration/breeze/` | Breeze title bars, patched to keep their corners | KDecoration3, Breeze's sources |
 
-Coming: `lookandfeel/` (global theme), `plasmoids/`, `kwin/scripts/`,
+Coming: `lookandfeel/` (global theme), `kwin/scripts/`,
 `kwin/effects/`, `sddm/`.
 
 ## Themes
@@ -93,6 +94,36 @@ strip is its float margin plus the gap, so maximized windows end a gap above
 the panel and Plasma keeps it floating (it un-floats a panel whose window a
 window overlaps). Switched on, with the gap's size, on the hub's Windows page
 (`[Gaps] Enabled`, `Size` in `kde-ricerc`); it runs at login when on.
+
+## Desktop widgets
+
+Widgets for the desktop (Add Widgets, then search "kde-rice"), each on a
+card of frosted glass. Plasma cannot blur what lies behind a widget on the
+desktop, since the wallpaper is drawn in the same window, so the card draws
+the theme's background picture itself (the file kde-rice's wallpaper shows),
+blurred, where the wallpaper has it, under a veil of the theme's background
+colour (`plasmoids/common/Card.qml`, installed into each widget's package).
+Under a video background the card is the theme's colour instead. Text is in
+the theme's colours; each widget lays itself out by its shape, wide or not.
+
+- **Now Playing**: what an MPRIS player plays (the one Plasma's media
+  controller would pick): cover, title, artist, how far (click to seek), back,
+  play/pause and next. The card is tinted towards the cover's colour; a click
+  on the cover raises the player.
+- **System Rings**: ksystemstats' sensors as rings, one inside the other, in
+  the theme's accent, positive, neutral and negative colours, with each one's
+  name and value beside them. CPU, memory, GPU and CPU temperature by
+  default; which ones is the widget's setting, one sensor id per line, as
+  `kstatsviewer --list` lists them. A sensor this computer does not have is
+  left out.
+
+To try a change without installing:
+`cmake --install build --prefix ~/.local` puts the widgets in
+`~/.local/share/plasma/plasmoids`, where Plasma finds them (after
+`systemctl --user restart plasma-plasmashell` for one already on the
+desktop). `install.sh` removes those copies, as they would hide the
+installed ones. A widget's `main.xml` has no comments: Plasma's reader of it
+loses the entries after one.
 
 ## Icons
 
@@ -218,7 +249,7 @@ their own (`kde-rice-whitesur-git`), made and installed again only when what
 they are built from changed (`packaging/whitesur-inputs`).
 
 Options: `-DKDERICE_APP=OFF`, `-DKDERICE_THEMES=OFF`, `-DKDERICE_LAUNCHER=OFF`,
-`-DKDERICE_ICONS=OFF`, `-DKDERICE_TRAY=OFF`, `-DKDERICE_GAPS=OFF`, `-DKDERICE_KWIN_PLUGINS=OFF`,
+`-DKDERICE_ICONS=OFF`, `-DKDERICE_TRAY=OFF`, `-DKDERICE_GAPS=OFF`, `-DKDERICE_PLASMOIDS=OFF`, `-DKDERICE_KWIN_PLUGINS=OFF`,
 `-DKDERICE_DECORATION=OFF`. The decoration fetches Breeze's sources for the
 installed Plasma release from download.kde.org; `-DBREEZE_URL=` points it at
 a local archive instead.
