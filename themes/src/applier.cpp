@@ -20,6 +20,7 @@
 #include <QScopeGuard>
 #include <QUrl>
 #include <QStandardPaths>
+#include <QThread>
 
 #include <cstdio>
 
@@ -228,6 +229,44 @@ struct Context {
     }
 };
 
+// GTK applications hear of a new colour scheme from kde-gtk-config, which
+// first says light or dark (color-scheme) and only then writes GTK's colours
+// (gtk-3.0/colors.css) and has them read again. Chromium, and with it every
+// Electron application, takes light or dark from GTK's colours at the first,
+// so from the colours of the scheme before, and puts that over the portal's
+// right answer: always a theme behind. Once the colours are written, GTK's
+// theme is set again by way of another, which has Chromium look at them once
+// more. kde-gtk-config sets it for GTK on Wayland and on X11 alike.
+static void refreshGtk(const QDateTime &coloursBefore)
+{
+    const auto call = [](const QString &method, const QVariantList &arguments = {}) {
+        auto message = QDBusMessage::createMethodCall(u"org.kde.kded6"_s, u"/modules/gtkconfig"_s, u"org.kde.GtkConfig"_s, method);
+        message.setArguments(arguments);
+        return QDBusConnection::sessionBus().call(message, QDBus::Block, 5000);
+    };
+    const QDBusMessage reply = call(u"gtkTheme"_s);
+    const QString theme = reply.arguments().value(0).toString();
+    if (reply.type() != QDBusMessage::ReplyMessage || theme.isEmpty()) {
+        return;
+    }
+    const QString colours = configHome() + "/gtk-3.0/colors.css"_L1;
+    for (int waited = 0; waited < 3000 && QFileInfo(colours).lastModified() == coloursBefore; waited += 50) {
+        QThread::msleep(50);
+    }
+    // and read by GTK (kde-gtk-config's colorsChanged)
+    QThread::msleep(300);
+    // its light or dark sibling, else GTK's own
+    QString other = theme.endsWith("-Dark"_L1) ? theme.chopped(5) : theme + "-Dark"_L1;
+    if (QStandardPaths::locate(QStandardPaths::GenericDataLocation, "themes/"_L1 + other, QStandardPaths::LocateDirectory).isEmpty()) {
+        other = u"Adwaita"_s;
+    }
+    call(u"setGtkTheme"_s, {other});
+    // two changes, not one that comes to nothing (xsettingsd reads its
+    // file when it is told to)
+    QThread::msleep(200);
+    call(u"setGtkTheme"_s, {theme});
+}
+
 static void applyKde(Context &context)
 {
     const QString scheme = context.values[u"scheme"_s];
@@ -242,6 +281,7 @@ static void applyKde(Context &context)
         if (!current.startsWith("KDERice"_L1) && !current.isEmpty() && !QFileInfo::exists(before)) {
             write(before, current.toUtf8() + '\n');
         }
+        const QDateTime gtkColours = QFileInfo(configHome() + "/gtk-3.0/colors.css"_L1).lastModified();
         // It will not take the scheme it already has, also not after its
         // file has changed: by way of another one, then.
         if (current == scheme) {
@@ -249,6 +289,8 @@ static void applyKde(Context &context)
         }
         if (context.run(u"plasma-apply-colorscheme"_s, {scheme}) != 0) {
             context.problems += u"plasma-apply-colorscheme %1 failed"_s.arg(scheme);
+        } else {
+            refreshGtk(gtkColours);
         }
     }
 
