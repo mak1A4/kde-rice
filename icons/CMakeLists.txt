@@ -38,10 +38,12 @@ add_custom_command(
     COMMAND sh -c "for dir in \"$1\"/*/status/32; do [ -L \"$dir\" ] && continue; for f in \"$2\"/*.svg; do n=$(basename \"$f\" .svg); case $n in *-attention) b=kde-rice-\${n%-attention}-tray-attention ;; *) b=kde-rice-$n-tray ;; esac; cp -f \"$f\" \"$dir/$b.svg\"; done; done" sh ${themes} ${CMAKE_CURRENT_SOURCE_DIR}/tray
     # app icons a little larger: WhiteSur leaves a margin round each tile
     COMMAND $<TARGET_FILE:kde-rice-trim-icons> ${themes}/kde-rice-whitesur/apps ${themes}/kde-rice-whitesur-dark/apps
-    # names applications ask for that WhiteSur has under another (aliases),
-    # as links in every variant whose app icons are its own; after the
-    # trimming, which would go through a link to the same picture again
-    COMMAND sh -c "for dir in \"$1\"/*/apps/scalable; do [ -L \"$dir\" ] || [ -L \"\${dir%/scalable}\" ] && continue; grep -v '^#' \"$2\" | while read -r name target; do [ -n \"$name\" ] && [ -e \"$dir/$target.svg\" ] && [ ! -e \"$dir/$name.svg\" ] && ln -s \"$target.svg\" \"$dir/$name.svg\"; done; done; true" sh ${themes} ${CMAKE_CURRENT_SOURCE_DIR}/aliases
+    # names made links to another of WhiteSur's pictures (aliases), in every
+    # variant whose app icons are its own, over what WhiteSur has under that
+    # name, and taken out of the fixed sizes (with the names linked to it
+    # there) so the link is what is found at every size; after the trimming,
+    # which would go through a link to the same picture again
+    COMMAND sh -c "for apps in \"$1\"/*/apps; do [ -L \"$apps\" ] && continue; grep -v '^#' \"$2\" | while read -r name target; do [ -n \"$name\" ] && [ -e \"$apps/scalable/$target.svg\" ] || continue; [ -L \"$apps/scalable\" ] || ln -sf \"$target.svg\" \"$apps/scalable/$name.svg\"; for size in \"$apps\"/16 \"$apps\"/22 \"$apps\"/32; do [ -d \"$size\" ] && [ ! -L \"$size\" ] || continue; find \"$size\" -maxdepth 1 -lname \"$name.svg\" -delete; rm -f \"$size/$name.svg\"; done; done; done; true" sh ${themes} ${CMAKE_CURRENT_SOURCE_DIR}/aliases
     DEPENDS ${whitesur_SOURCE_DIR}/install.sh kde-rice-trim-icons ${CMAKE_CURRENT_SOURCE_DIR}/extra/steam_tray_mono.svg ${CMAKE_CURRENT_SOURCE_DIR}/aliases
             ${CMAKE_CURRENT_SOURCE_DIR}/tray/outlook.svg ${CMAKE_CURRENT_SOURCE_DIR}/tray/teams.svg
             ${CMAKE_CURRENT_SOURCE_DIR}/tray/claude.svg ${CMAKE_CURRENT_SOURCE_DIR}/tray/chatgpt.svg

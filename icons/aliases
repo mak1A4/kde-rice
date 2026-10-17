@@ -1,5 +1,15 @@
-# Icon names applications ask for that WhiteSur draws under another name:
-# "<name> <WhiteSur's name>", each made a link to WhiteSur's picture in the
-# app icons. An application that writes its own launcher at every start
-# (Claude: X-Claude-Generated) cannot be pointed at WhiteSur's name.
+# Icon names made links to another of WhiteSur's pictures in the app icons:
+# "<name> <WhiteSur's name>", at every size, in place of any picture WhiteSur
+# has under that name itself.
+#
+# Names applications ask for that WhiteSur draws under another. An
+# application that writes its own launcher at every start (Claude:
+# X-Claude-Generated) cannot be pointed at WhiteSur's name.
 claude-desktop claude
+# Apple's pictures: the App Store's A for software centres (Discover's
+# plasmadiscover links to it) and System Preferences' gear for settings
+# (System Settings asks for preferences-system), as Flatpak's box and two
+# toggles
+softwarecenter flatpak-discover
+preferences-system gnome-tweak-tool
+preferences-desktop gnome-tweak-tool
