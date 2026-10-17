@@ -141,14 +141,19 @@ QList<Rule> loadRules()
     return rules;
 }
 
-// the name of the program a bus name belongs to
+// the name of the program a bus name belongs to; the same once its file has
+// been replaced while it runs (updated: the kernel says "<path> (deleted)")
 QString processOf(const QString &service)
 {
     const QDBusReply<uint> pid = QDBusConnection::sessionBus().interface()->servicePid(service);
     if (!pid.isValid()) {
         return {};
     }
-    return QFileInfo(QFile::symLinkTarget(u"/proc/%1/exe"_s.arg(pid.value()))).fileName();
+    QString exe = QFile::symLinkTarget(u"/proc/%1/exe"_s.arg(pid.value()));
+    if (exe.endsWith(" (deleted)"_L1)) {
+        exe.chop(10);
+    }
+    return QFileInfo(exe).fileName();
 }
 
 // The id Plasma's system tray knows an entry by, which is what its setting

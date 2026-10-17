@@ -1,11 +1,11 @@
 <svg version="1.1" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
- <!-- Outlook's tray glyph for kde-rice, in WhiteSur's tray style: an envelope, with a dot for unread messages; in the colour scheme's text colour (kde-rice colours it with the theme) -->
- <defs>
-  <style id="current-color-scheme" type="text/css">.ColorScheme-Text { color:#363636; } .ColorScheme-NegativeText { color:#da4453; }</style>
- </defs>
+ <!-- Outlook's tray glyph for kde-rice, in WhiteSur's tray style: its O tile over an envelope, cut back round a dot for unread messages; in the colour scheme's text colour (kde-rice colours it with the theme) -->
+ <defs><style id="current-color-scheme" type="text/css">.ColorScheme-Text { color:#363636; } .ColorScheme-NegativeText { color:#da4453; }</style></defs>
  <g class="ColorScheme-Text" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-  <rect x="4.5" y="8" width="23" height="16" rx="3"/>
-  <path d="m5.5 10 10.5 7.5 10.5-7.5"/>
+  <path d="M12.5 9.5V8.5Q12.5 7 14 7H19.5M27.5 13V22Q27.5 24 25.5 24H17.5"/>
+  <path d="M17.5 13L20.5 15L23 13"/>
+  <rect x="4.5" y="9.5" width="13" height="16" rx="1.5"/>
+  <ellipse cx="11" cy="17.5" rx="3" ry="4.5"/>
  </g>
- <circle class="ColorScheme-NegativeText" cx="25.5" cy="7" r="4" fill="currentColor"/>
+ <circle class="ColorScheme-NegativeText" fill="currentColor" cx="25.5" cy="7" r="4"/>
 </svg>
