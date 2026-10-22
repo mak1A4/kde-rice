@@ -293,5 +293,16 @@ a local archive instead.
 
 **After every Plasma update**, run `./install.sh` again: KWin's plugin API
 is not stable between releases, and a plugin built for the previous KWin is
-not loaded. A plugin already loaded is replaced by its new build only at the
-next login.
+not loaded. So that this is not forgotten, the package asks for the KWin
+release it was built against (`kwin=6.8.1`), and `pacman -Syu` stops at a
+newer KWin ("installing kwin breaks dependency 'kwin=6.8.1' required by
+kde-rice-git") instead of updating it and silently losing the rounded
+corners and the gaps. Let the update through with the pin assumed met, and
+rebuild against the new KWin right after:
+
+```sh
+sudo pacman -Syu --assume-installed "kwin=$(pacman -Q kwin | cut -d' ' -f2 | cut -d- -f1)"
+./install.sh
+```
+
+A plugin already loaded is replaced by its new build only at the next login.

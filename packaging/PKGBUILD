@@ -3,7 +3,13 @@
 #   cd packaging && makepkg -si
 #
 # The KWin plugins and the decoration are built against the KWin installed
-# now: run it again after each Plasma update.
+# now: run it again after each Plasma update. KWin loads a plugin only when
+# it was built for its exact release (plugin.h: the plugin says
+# org.kde.kwin.PluginFactoryInterface6.8.1, and KWin 6.8.2 looks for
+# ...6.8.2), so a KWin update on its own would silently drop the rounded
+# corners and the gaps: kde-rice-git asks for the KWin release it was built
+# against, and pacman holds a newer KWin back until kde-rice is built again
+# alongside it (the kwin=... line when pacman refuses the update says so).
 #
 # Two packages from one build: kde-rice-git, and kde-rice-whitesur-git with
 # kde-rice's icons (WhiteSur's ~44000 files, which take most of the time to
@@ -54,7 +60,19 @@ build() {
     cmake --build build
 }
 
+# the KWin release the plugins were built for: what their plugin interface
+# names (config-kwin.h's KWIN_PLUGIN_VERSION_STRING, through plugin.h)
+_kwin_release() {
+    sed -n 's/^#define KWIN_PLUGIN_VERSION_STRING "\([^"]*\)".*/\1/p' /usr/include/kwin/config-kwin.h 2> /dev/null
+}
+
 package_kde-rice-git() {
+    # kwin pinned to the release built against (see the top); pkgrel left
+    # out, as a rebuild of KWin's package alone changes nothing for a plugin
+    local release=$(_kwin_release) i
+    for i in "${!depends[@]}"; do
+        [ "${depends[$i]}" = kwin ] && [ -n "$release" ] && depends[$i]="kwin=$release"
+    done
     depends+=(kde-rice-whitesur-git)
     DESTDIR="$pkgdir" cmake --install build --component kde-rice
 }
