@@ -99,8 +99,10 @@ The strips also shrink the area KWin keeps menus in and Plasma places its
 tooltips and notifications by, so a KWin plugin (`kwin/plugins/gaps`, on by
 default, idle while the gaps are off) gives that room back: menus are
 placed as without the strips, the panel's tooltips sit against the panel,
-and notifications line up with the windows (the stack's corner where a
-maximized window's is), where Plasma's own spacing came on top of the gap.
+and notifications line up with the windows (the stack's side where a
+maximized window's is) and sit by the panel, as far off it as the panel
+floats off the screen's edge, where Plasma's own spacing came on top of the
+gap.
 
 ## Desktop widgets
 
@@ -291,14 +293,16 @@ Options: `-DKDERICE_APP=OFF`, `-DKDERICE_THEMES=OFF`, `-DKDERICE_LAUNCHER=OFF`,
 installed Plasma release from download.kde.org; `-DBREEZE_URL=` points it at
 a local archive instead.
 
-**After every Plasma update**, run `./install.sh` again: KWin's plugin API
-is not stable between releases, and a plugin built for the previous KWin is
-not loaded. So that this is not forgotten, the package asks for the KWin
+**After every Plasma update**, kde-rice has to be built again: KWin's plugin
+API is not stable between releases, and a plugin built for the previous KWin
+is not loaded. So that this is not forgotten, the package asks for the KWin
 release it was built against (`kwin=6.8.1`), and `pacman -Syu` stops at a
 newer KWin ("installing kwin breaks dependency 'kwin=6.8.1' required by
 kde-rice-git") instead of updating it and silently losing the rounded
-corners and the gaps. Let the update through with the pin assumed met, and
-rebuild against the new KWin right after:
+corners and the gaps. Update with **`./update.sh`** instead: it runs
+`paru -Syu` (or `pacman -Syu`) with the pin assumed met, and when KWin is
+then another release, `./install.sh` right after it. Arguments are passed on
+to `-Syu`. By hand, it is:
 
 ```sh
 sudo pacman -Syu --assume-installed "kwin=$(pacman -Q kwin | cut -d' ' -f2 | cut -d- -f1)"

@@ -17,7 +17,9 @@
 // Plasma's notifications keep a spacing of their own inside that area, so
 // with the gaps they stood twice as far off the panel and the screen's edge
 // as windows do: they are moved out by that spacing, all of them by the
-// same, so that the corner of the stack is where a maximized window's is.
+// same, so that the corner of the stack is where a maximized window's is;
+// by a panel, the stack is then brought to it, as far off it as the panel
+// floats off the screen's edge.
 
 #include "plugin.h"
 #include "wayland/surface.h"
@@ -145,6 +147,29 @@ private:
         return area;
     }
 
+    // the panels on an output, without the strips of kde-rice-gaps
+    static QList<Window *> panelsOn(const LogicalOutput *output)
+    {
+        QList<Window *> found;
+        const auto windows = workspace()->windows();
+        for (Window *panel : windows) {
+            if (panel->isDock() && !panel->isDeleted() && panel->output() == output && panel->surface()
+                && panel->resourceClass() != QLatin1String("kde-rice-gaps")) {
+                found += panel;
+            }
+        }
+        return found;
+    }
+
+    // what a panel shows of its window, which Plasma gives as the input
+    // region of it (a floating panel's window is larger, its margin empty)
+    static RectF shownOf(const Window *panel)
+    {
+        const RegionF input = panel->surface()->input();
+        const RectF frame = panel->frameGeometry();
+        return input.isEmpty() ? frame : input.boundingRect().translated(panel->bufferGeometry().topLeft()) & frame;
+    }
+
     // A tooltip by a panel, against the panel's edge. Plasma places each
     // kind of tooltip its own way, a text a gap's breadth off the panel, a
     // window's picture less (and one window does for all of them, moved and
@@ -165,15 +190,10 @@ private:
             reach = std::max(reach, std::min(strut.width(), strut.height()) + 16);
         }
         const RectF geometry = window->frameGeometry();
-        const auto windows = workspace()->windows();
-        for (const Window *panel : windows) {
-            if (!panel->isDock() || panel->isDeleted() || panel->output() != window->output() || !panel->surface()
-                || panel->resourceClass() == QLatin1String("kde-rice-gaps")) {
-                continue;
-            }
-            const RegionF input = panel->surface()->input();
+        const auto panels = panelsOn(window->output());
+        for (const Window *panel : panels) {
             const RectF frame = panel->frameGeometry();
-            const RectF shown = input.isEmpty() ? frame : input.boundingRect().translated(panel->bufferGeometry().topLeft()) & frame;
+            const RectF shown = shownOf(panel);
             const RectF screen = workspace()->clientArea(ScreenArea, panel);
             const bool horizontal = frame.width() >= frame.height();
             QPointF offset;
@@ -208,7 +228,8 @@ private:
         }
         // Plasma's spacing is less than this; a stack farther off is not by that side
         constexpr qreal reach = 48;
-        std::optional<RectF> area;
+        std::optional<RectF> area, screen;
+        RectF stack;
         qreal left = reach + 1, top = reach + 1, right = reach + 1, bottom = reach + 1;
         for (auto it = m_notifications.cbegin(); it != m_notifications.cend(); ++it) {
             if (it.key()->isDeleted() || it.key()->output() != output) {
@@ -216,8 +237,10 @@ private:
             }
             if (!area) {
                 area = workspace()->clientArea(MaximizeArea, it.key());
+                screen = workspace()->clientArea(ScreenArea, it.key());
             }
             const RectF &placed = it.value();
+            stack = stack.united(placed);
             left = std::min(left, placed.left() - area->left());
             top = std::min(top, placed.top() - area->top());
             right = std::min(right, area->right() - placed.right());
@@ -229,7 +252,34 @@ private:
         const auto by = [reach](qreal distance) {
             return distance > 0 && distance <= reach ? distance : 0.0;
         };
-        const QPointF offset(by(right) - by(left), by(bottom) - by(top));
+        QPointF offset(by(right) - by(left), by(bottom) - by(top));
+        // then to a panel the stack lies by, as far off it as the panel
+        // floats off the screen's edge (where the stack is a gap off it)
+        stack.translate(offset);
+        const auto panels = panelsOn(output);
+        for (const Window *panel : panels) {
+            const RectF frame = panel->frameGeometry();
+            const RectF shown = shownOf(panel);
+            if (frame.width() >= frame.height()) {
+                if (std::min(stack.right(), shown.right()) <= std::max(stack.left(), shown.left())) {
+                    continue;
+                }
+                if (frame.center().y() > screen->center().y() && shown.top() >= stack.bottom() && shown.top() - stack.bottom() <= reach) {
+                    offset.ry() += shown.top() - (screen->bottom() - shown.bottom()) - stack.bottom();
+                } else if (frame.center().y() <= screen->center().y() && stack.top() >= shown.bottom() && stack.top() - shown.bottom() <= reach) {
+                    offset.ry() += shown.bottom() + (shown.top() - screen->top()) - stack.top();
+                }
+            } else {
+                if (std::min(stack.bottom(), shown.bottom()) <= std::max(stack.top(), shown.top())) {
+                    continue;
+                }
+                if (frame.center().x() > screen->center().x() && shown.left() >= stack.right() && shown.left() - stack.right() <= reach) {
+                    offset.rx() += shown.left() - (screen->right() - shown.right()) - stack.right();
+                } else if (frame.center().x() <= screen->center().x() && stack.left() >= shown.right() && stack.left() - shown.right() <= reach) {
+                    offset.rx() += shown.right() + (shown.left() - screen->left()) - stack.left();
+                }
+            }
+        }
         m_placing = true;
         for (auto it = m_notifications.cbegin(); it != m_notifications.cend(); ++it) {
             if (!it.key()->isDeleted() && it.key()->output() == output && it.key()->pos() != it.value().topLeft() + offset) {

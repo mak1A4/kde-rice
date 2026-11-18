@@ -9,7 +9,8 @@
 # ...6.8.2), so a KWin update on its own would silently drop the rounded
 # corners and the gaps: kde-rice-git asks for the KWin release it was built
 # against, and pacman holds a newer KWin back until kde-rice is built again
-# alongside it (the kwin=... line when pacman refuses the update says so).
+# alongside it (the kwin=... line when pacman refuses the update says so;
+# ../update.sh updates with the pin assumed met and builds kde-rice again).
 #
 # Two packages from one build: kde-rice-git, and kde-rice-whitesur-git with
 # kde-rice's icons (WhiteSur's ~44000 files, which take most of the time to
@@ -21,7 +22,7 @@ pkgname=(kde-rice-git kde-rice-whitesur-git)
 if [ "${KDERICE_WHITESUR:-1}" = 0 ]; then
     pkgname=(kde-rice-git)
 fi
-pkgver=r62.a43c821
+pkgver=r63.4fdd41a
 pkgrel=1
 pkgdesc="One place to customize KDE Plasma: a hub application and the KWin and Plasma parts it switches on"
 arch=(x86_64)
