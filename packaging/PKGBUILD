@@ -22,7 +22,7 @@ pkgname=(kde-rice-git kde-rice-whitesur-git)
 if [ "${KDERICE_WHITESUR:-1}" = 0 ]; then
     pkgname=(kde-rice-git)
 fi
-pkgver=r64.d4383cc
+pkgver=r65.a921aef
 pkgrel=1
 pkgdesc="One place to customize KDE Plasma: a hub application and the KWin and Plasma parts it switches on"
 arch=(x86_64)

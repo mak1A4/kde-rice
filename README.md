@@ -302,17 +302,23 @@ sudo cmake --install build        # the KWin parts only work installed
 ```
 
 Or as a package, the way to install it here: **`./install.sh`**. It builds
-the pacman package from this checkout, installs it (asking for the password
-once), starts the launcher and the gaps again in their new build, and says
-when KWin's parts changed and need a new login. The icons are a package of
-their own (`kde-rice-whitesur-git`), made and installed again only when what
-they are built from changed (`packaging/whitesur-inputs`).
+the pacman package from this checkout (incrementally) and holds it against
+the installed one file by file: nothing changed, nothing is installed and no
+password asked for. Otherwise it installs it (asking for the password once)
+and does only what the changed files call for: the launcher, the gaps or the
+tray started again in their new build, kde-rice's Plasma style made again,
+Plasma restarted (its wallpaper, widgets, icons or application style), and
+it says when KWin's parts changed and need a new login, or when Dolphin and
+the other applications take a new library or style on their next start.
+`./install.sh --force` installs and does all of it anyway. The icons are a
+package of their own (`kde-rice-whitesur-git`), made and installed again only
+when what they are built from changed (`packaging/whitesur-inputs`).
 
 Options: `-DKDERICE_APP=OFF`, `-DKDERICE_THEMES=OFF`, `-DKDERICE_LAUNCHER=OFF`,
 `-DKDERICE_ICONS=OFF`, `-DKDERICE_TRAY=OFF`, `-DKDERICE_GAPS=OFF`, `-DKDERICE_PLASMOIDS=OFF`, `-DKDERICE_KWIN_PLUGINS=OFF`,
-`-DKDERICE_DECORATION=OFF`, `-DKDERICE_STYLE=OFF`, `-DKDERICE_KICKOFF=OFF`. The decoration and the application style fetch Breeze's sources for the
+`-DKDERICE_DECORATION=OFF`, `-DKDERICE_STYLE=OFF`, `-DKDERICE_KICKOFF=OFF`, `-DKDERICE_DOLPHIN=OFF`. The decoration and the application style fetch Breeze's sources for the
 installed Plasma release from download.kde.org; `-DBREEZE_URL=` points it at
-a local archive instead.
+a local archive instead (`-DDOLPHIN_URL=` likewise for Dolphin's).
 
 `./install.sh --gtk` writes only GTK's style sheets, from this checkout's
 template: nothing is installed and no password asked for, which is the quick

@@ -19,6 +19,8 @@ Item {
     required property var actions
     required property bool matchEnabled
 
+    // the highlight's corners
+    property real radius: Kirigami.Units.cornerRadius
     property bool selected: false
     // the action chosen with Tab; -1 is none
     property int activeAction: -1
@@ -30,7 +32,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        radius: Kirigami.Units.cornerRadius
+        radius: row.radius
         color: Qt.alpha(Kirigami.Theme.highlightColor, 0.25)
         border.width: 1
         border.color: Qt.alpha(Kirigami.Theme.highlightColor, 0.5)

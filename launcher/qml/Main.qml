@@ -239,14 +239,36 @@ Window {
                     }
                 }
 
+                // a handle alone: the desktop style's has a track with a line
+                // along the rows
                 QQC2.ScrollBar.vertical: QQC2.ScrollBar {
                     id: scrollBar
+
+                    visible: size < 1.0
+                    padding: Kirigami.Units.smallSpacing / 2
+                    leftPadding: Kirigami.Units.smallSpacing
+                    background: null
+                    contentItem: Rectangle {
+                        implicitWidth: Kirigami.Units.smallSpacing
+                        radius: width / 2
+                        color: Kirigami.Theme.textColor
+                        opacity: scrollBar.pressed ? 0.5 : scrollBar.hovered ? 0.35 : 0.2
+
+                        Behavior on opacity {
+                            NumberAnimation {
+                                duration: Kirigami.Units.shortDuration
+                            }
+                        }
+                    }
                 }
 
                 delegate: ResultRow {
-                    // the desktop style's scroll bar takes room of its own
+                    // the scroll bar takes room of its own
                     width: ListView.view.width - (scrollBar.visible ? scrollBar.width : 0)
                     height: root.rowHeight
+                    // the box's corners, less the margin the list keeps to
+                    // it: in a corner of the box the highlight follows it
+                    radius: box.radius - view.Layout.margins
                     selected: index === root.results.currentIndex
                     activeAction: selected ? root.activeAction : -1
 

@@ -5,22 +5,36 @@
 # password is asked for once:
 #
 #   ./install.sh
+#   ./install.sh --force   installs, and does all that follows, even when
+#                          nothing changed
 #   ./install.sh --gtk     only the style sheets for GTK, from this checkout
 #                          (the menus of Electron applications, libadwaita's
 #                          colours): nothing is installed, no password. The
 #                          theme's program is built in build/ and writes them;
 #                          an application reads them when it starts.
 #
-# Afterwards the programs that run in the background (the launcher, the
-# gaps) are started again in their new build, and it says whether KWin's
-# parts changed: KWin loads its plugins and the window decoration only when
-# the session starts, so for those it is a new login. The login screen is
-# brought in step with the session (Papirus, if that is the icon theme, is
-# installed for everyone so that it finds it). Plasma keeps the
-# wallpaper's code and the icons it has drawn until it restarts: if either
-# changed, Plasma (the desktop and the panels, not the windows) is restarted.
-# So it is when the desktop widgets (plasmoids/) changed: Plasma keeps their
-# code too.
+# The build is incremental (makepkg keeps packaging/src/build). The package
+# built is then held against the one installed, file by file: when nothing
+# in it changed, nothing is installed and no password asked for. Otherwise
+# only what the changed files call for follows:
+#
+# - the background programs (the launcher, the gaps, the tray) started
+#   again in their new build, those whose program changed;
+# - kde-rice's Plasma style made again, if it is in use and the hub (which
+#   makes it) changed;
+# - Plasma (the desktop and the panels, not the windows) restarted when it
+#   keeps something that changed: the wallpaper's code, the desktop
+#   widgets' (plasmoids/), the icons it has drawn, or the application style
+#   it draws its menus with;
+# - said, when KWin's parts changed, that it takes a new login: KWin loads
+#   its plugins and the window decoration only when the session starts.
+#
+# - the desktop portal restarted, if KWin was restarted meanwhile (the
+#   portal keeps talking to the KWin that is gone).
+#
+# With the package, the login screen is brought in step with the session
+# (Papirus, if that is the icon theme, is installed for everyone so that it
+# finds it).
 #
 # kde-rice's icons are a package of their own (kde-rice-whitesur-git), built
 # and installed only when what they are made from changed
@@ -36,24 +50,39 @@ if [ "${1:-}" = --gtk ]; then
     echo "GTK's style sheets written: applications read them when they start."
     exit
 fi
-plugins=$(qtpaths6 --query QT_INSTALL_PLUGINS 2>/dev/null || echo /usr/lib/qt6/plugins)
-kwin_parts="$plugins/kwin/plugins/kderice_roundcorners.so $plugins/kwin/plugins/kderice_gaps.so $plugins/org.kde.kdecoration3/io.github.mak1a4.kde-rice.breeze.so"
+force=0
+[ "${1:-}" = --force ] && force=1
 
-sums() {
-    # shellcheck disable=SC2086
-    md5sum $kwin_parts 2> /dev/null || true
+scratch=$(mktemp -d)
+trap 'rm -rf "$scratch"' EXIT
+
+# A package's files, each with its checksum, or its target for a link
+# (pacman's mtree, without the times): what is built, and what is installed.
+files_of() {
+    grep '^\./[^.]' | sed 's/ time=[^ ]*//' | sort
+}
+built_files() {
+    bsdtar -xOf "$1" .MTREE | gzip -dc | files_of
+}
+installed_files() {
+    for mtree in /var/lib/pacman/local/kde-rice-git-*/mtree; do
+        [ -e "$mtree" ] && gzip -dc "$mtree" | files_of
+    done
+}
+# and what it depends on (the KWin release it is pinned to among them)
+built_depends() {
+    bsdtar -xOf "$1" .PKGINFO | sed -n 's/^depend = //p' | sort
+}
+installed_depends() {
+    for desc in /var/lib/pacman/local/kde-rice-git-*/desc; do
+        [ -e "$desc" ] && sed -n '/^%DEPENDS%$/,/^$/{/^%/d;/^$/d;p}' "$desc"
+    done | sort
 }
 
-wallpaper=/usr/share/plasma/wallpapers/io.github.mak1a4.kde-rice.background
-plasmoids=/usr/share/plasma/plasmoids
-
-# the QML Plasma keeps once loaded: the wallpaper's and the widgets'
-plasma_qml() {
-    find "$wallpaper" "$plasmoids"/io.github.mak1a4.kde-rice.* -type f 2> /dev/null | sort | xargs -r cat | md5sum
+# whether a file whose path matches (grep's pattern) is among the changed
+changed() {
+    grep -q -- "$1" "$scratch/changed"
 }
-
-before=$(sums)
-plasma_before=$(plasma_qml)
 
 cd "$repo/packaging"
 
@@ -78,6 +107,26 @@ package=$(ls "$PWD"/kde-rice-git-*.pkg.tar.zst)
 icon_package=
 [ "$whitesur" = 0 ] || icon_package=$(ls "$PWD"/kde-rice-whitesur-git-*.pkg.tar.zst)
 
+# the files that differ from the installed package's (both sides' lines,
+# by path)
+built_files "$package" > "$scratch/built"
+installed_files > "$scratch/installed"
+comm -3 "$scratch/built" "$scratch/installed" | sed 's/^\t//; s/ .*//' | sort -u > "$scratch/changed"
+depends_changed=0
+[ "$(built_depends "$package")" = "$(installed_depends)" ] || depends_changed=1
+
+if [ "$force" = 0 ] && [ ! -s "$scratch/changed" ] && [ "$depends_changed" = 0 ] && [ "$whitesur" = 0 ]; then
+    echo
+    echo "Nothing changed since the last install: nothing installed (./install.sh --force does it anyway)."
+    exit
+fi
+if [ "$force" = 1 ]; then
+    # all of it, as if every file were new
+    cut -d' ' -f1 "$scratch/built" > "$scratch/changed"
+fi
+echo
+echo "$(wc -l < "$scratch/changed") of kde-rice's files changed."
+
 # The login screen needs its icon theme installed for everyone.
 papirus=
 icons=$(kreadconfig6 --file kdeglobals --group Icons --key Theme)
@@ -86,6 +135,12 @@ case "$icons" in
 esac
 login=
 getent passwd plasmalogin > /dev/null && login=yes
+
+# KWin as it runs now: a KWin restarted meanwhile (replacing its plugins
+# under it can take it down, and its wrapper starts it again) leaves the
+# desktop portal talking to the one that is gone (screen sharing, file
+# dialogs), which is then restarted too
+kwin_before=$(pgrep -x kwin_wayland || true)
 
 # all that is root's, at once: the package, Papirus, and the login screen
 # given the session's settings and kde-rice's wallpaper (sudo tells it who
@@ -101,19 +156,22 @@ sudo sh -c '
 
 # the session's systemd reads the package's units again (the icon theme
 # written before Plasma starts: a drop-in for its unit)
-systemctl --user daemon-reload
+if changed '^\./usr/lib/systemd/'; then
+    systemctl --user daemon-reload
+fi
 
 # kde-rice's Plasma style, if it is the one in use, made again by the new
-# build
-if [ "$(kreadconfig6 --file plasmarc --group Theme --key name)" = kde-rice ]; then
+# build of the hub, which makes it
+if changed '^\./usr/bin/kde-rice$' && [ "$(kreadconfig6 --file plasmarc --group Theme --key name)" = kde-rice ]; then
     kde-rice --panel-opacity "$(kreadconfig6 --file kde-ricerc --group Panels --key Opacity --default 85)"
     echo "made kde-rice's Plasma style again"
 fi
 
-# the background programs, as the new build. Found by the program in their
-# command line: the name pkill -x knows is cut at 15 characters
-# (kde-rice-launch).
+# the background programs whose program changed, as the new build. Found by
+# the program in their command line: the name pkill -x knows is cut at 15
+# characters (kde-rice-launch).
 restart() {
+    changed "^\./usr/bin/$1\$" || return 1
     if pkill -f "^([^ ]*/)?$1( |\$)"; then
         sleep 0.5
         shift
@@ -126,33 +184,56 @@ restart() {
 # (one that is not running stays so, and the rest goes on)
 restart kde-rice-launcher kde-rice-launcher --background || true
 restart kde-rice-gaps kde-rice-gaps || true
+restart kde-rice-tray kde-rice-tray || true
 # the tray's entries that follow the icon theme: started now if they are not
 # running yet (later, by the autostart entry at login), unless kde-rice is
 # off (kde-rice --restore-defaults)
 off="${XDG_STATE_HOME:-$HOME/.local/state}/kde-rice/off.json"
-if ! restart kde-rice-tray kde-rice-tray && [ ! -e "$off" ]; then
+if ! pgrep -f '^([^ ]*/)?kde-rice-tray( |$)' > /dev/null && [ ! -e "$off" ]; then
     setsid kde-rice-tray > /dev/null 2>&1 < /dev/null &
     echo "started kde-rice-tray"
 fi
 
 # Copies of kde-rice's widgets in the home directory (left from trying one
 # out) would be loaded in place of the installed ones.
+copies=0
 if rm -rv "$HOME"/.local/share/plasma/plasmoids/io.github.mak1a4.kde-rice.* 2> /dev/null | grep -q .; then
-    plasma_before=
+    copies=1
     echo "removed kde-rice's widgets from ~/.local/share/plasma/plasmoids"
 fi
 
-if { [ "$(plasma_qml)" != "$plasma_before" ] || [ "$whitesur" = 1 ]; } \
+# what Plasma keeps once loaded: the wallpaper's and the widgets' code, the
+# icons, the application style (its menus)
+if { changed '^\./usr/share/plasma/wallpapers/io\.github\.mak1a4\.kde-rice\.' \
+    || changed '^\./usr/share/plasma/plasmoids/io\.github\.mak1a4\.kde-rice\.' \
+    || changed '/plugins/styles/kde-rice\.so$' \
+    || [ "$whitesur" = 1 ] || [ "$copies" = 1 ]; } \
     && pgrep -x plasmashell > /dev/null; then
     systemctl --user restart plasma-plasmashell.service
-    echo "restarted Plasma for the new wallpaper, widgets or icons"
+    echo "restarted Plasma for the new wallpaper, widgets, icons or style"
+fi
+
+# (a restart of KWin's own may take a moment to show)
+if [ -n "$kwin_before" ]; then
+    sleep 1
+    kwin_after=$(pgrep -x kwin_wayland || true)
+    if [ "$kwin_after" != "$kwin_before" ]; then
+        systemctl --user restart xdg-desktop-portal.service
+        echo "KWin was restarted meanwhile: restarted the desktop portal for it"
+    fi
 fi
 
 echo
-if [ "$(sums)" != "$before" ]; then
+if changed '/plugins/kwin/plugins/kderice_' || changed '/plugins/org\.kde\.kdecoration3/io\.github\.mak1a4\.kde-rice\.'; then
     echo "KWin's parts changed (rounded corners, title bars, popups across the gaps): log out and back in to load them."
 fi
-if pgrep -x kde-rice > /dev/null; then
+if changed '/plugins/styles/kde-rice\.so$'; then
+    echo "The application style changed: applications take it when they start again (KWin's menus at the next login)."
+fi
+if changed '^\./usr/lib/kde-rice/dolphin/'; then
+    echo "Dolphin's library changed: Dolphin takes it when it starts again."
+fi
+if changed '^\./usr/bin/kde-rice$' && pgrep -x kde-rice > /dev/null; then
     echo "The hub is open in its old build: close it and open it again."
 fi
 if [ -e "$off" ]; then
