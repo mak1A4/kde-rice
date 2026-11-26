@@ -149,7 +149,7 @@ Kirigami.ApplicationWindow {
         id: confirmOff
 
         title: i18n("Turn kde-rice off?")
-        subtitle: i18n("Everything kde-rice changes goes back to what you had before it, else to Plasma's own: the colour scheme, icons, Plasma style, title bars, wallpaper and lock screen, KWin's plugins, the gaps, the launcher and its Meta+Space, the tray, kde-rice's desktop widgets, the theme files of GTK, the terminals, btop and VS Code, and T3 Code's theme; applets wearing a kde-rice icon get their own. Plasma restarts (the windows stay). If the login screen has kde-rice's wallpaper, you are asked for your password to take it off.\n\nYour kde-rice settings are kept: turning it on again brings everything back.")
+        subtitle: i18n("Everything kde-rice changes goes back to what you had before it, else to Plasma's own: the colour scheme, icons, Plasma style, title bars, wallpaper and lock screen, KWin's plugins, the gaps, the launcher and its Meta+Space, the tray, kde-rice's desktop widgets, the splash screen at login, the application style, the theme files of GTK, the terminals, btop and VS Code, and T3 Code's theme; applets wearing a kde-rice icon get their own. Plasma restarts (the windows stay). If the login screen has kde-rice's wallpaper, you are asked for your password to take it off.\n\nYour kde-rice settings are kept: turning it on again brings everything back.")
         standardButtons: Kirigami.Dialog.Ok | Kirigami.Dialog.Cancel
         onAccepted: RiceSwitch.turnOff()
     }

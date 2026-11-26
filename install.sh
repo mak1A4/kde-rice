@@ -5,6 +5,11 @@
 # password is asked for once:
 #
 #   ./install.sh
+#   ./install.sh --gtk     only the style sheets for GTK, from this checkout
+#                          (the menus of Electron applications, libadwaita's
+#                          colours): nothing is installed, no password. The
+#                          theme's program is built in build/ and writes them;
+#                          an application reads them when it starts.
 #
 # Afterwards the programs that run in the background (the launcher, the
 # gaps) are started again in their new build, and it says whether KWin's
@@ -23,6 +28,14 @@
 set -e
 
 repo=$(cd "$(dirname "$0")" && pwd)
+
+if [ "${1:-}" = --gtk ]; then
+    [ -e "$repo/build/build.ninja" ] || cmake -S "$repo" -B "$repo/build" -G Ninja -DCMAKE_INSTALL_PREFIX=/usr > /dev/null
+    cmake --build "$repo/build" --target kde-rice-theme > /dev/null
+    KDERICE_TEMPLATES="$repo/themes/templates" "$repo/build/bin/kde-rice-theme" apply gtk
+    echo "GTK's style sheets written: applications read them when they start."
+    exit
+fi
 plugins=$(qtpaths6 --query QT_INSTALL_PLUGINS 2>/dev/null || echo /usr/lib/qt6/plugins)
 kwin_parts="$plugins/kwin/plugins/kderice_roundcorners.so $plugins/kwin/plugins/kderice_gaps.so $plugins/org.kde.kdecoration3/io.github.mak1a4.kde-rice.breeze.so"
 

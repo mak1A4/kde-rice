@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Favorites in kde-rice's Application Launcher (plasmoids/kickoff), in place of Plasma's bookmark, which hangs from the top of its square: a heart, outlined as WhiteSur's 16 px pictures are, with round lobes (WhiteSur's own, its love, is wide and pointed) and as far from the top as from the bottom (the 0.062 it is moved up by); kde-rice colours it with the theme -->
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+ <defs><style id="current-color-scheme" type="text/css">.ColorScheme-Text { color:#363636; }</style></defs>
+ <path class="ColorScheme-Text" transform="translate(0,-0.062)" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round" d="M 8 13 C 8 13 2.5 9.7 2.5 6 A 2.95 2.95 0 0 1 8 4.6 A 2.95 2.95 0 0 1 13.5 6 C 13.5 9.7 8 13 8 13 Z"/>
+</svg>

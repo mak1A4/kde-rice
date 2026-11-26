@@ -149,7 +149,11 @@ static QString configHome()
 
 static QString templatesDir()
 {
-    QString dir = QStandardPaths::locate(QStandardPaths::GenericDataLocation, u"kde-rice/templates"_s, QStandardPaths::LocateDirectory);
+    // a checkout's, ahead of the installed ones (install.sh --gtk)
+    QString dir = qEnvironmentVariable("KDERICE_TEMPLATES");
+    if (dir.isEmpty()) {
+        dir = QStandardPaths::locate(QStandardPaths::GenericDataLocation, u"kde-rice/templates"_s, QStandardPaths::LocateDirectory);
+    }
 #ifdef KDERICE_SOURCE_TEMPLATES
     if (dir.isEmpty()) {
         dir = QStringLiteral(KDERICE_SOURCE_TEMPLATES);
@@ -322,20 +326,34 @@ static void applyKde(Context &context)
 // that the user's style sheet imports. KDE rewrites that style sheet at a
 // change of colour scheme and keeps what it finds there. An application
 // reads it when it starts.
-static void applyGtk(Context &context)
+//
+// GTK 3 has a file of ours too, for the menus: Chromium, and with it every
+// Electron application, draws its menus itself but asks GTK 3 how an entry
+// under the pointer and a separator look (gtk3.css.tpl).
+static const QByteArray gtkImport = "@import 'kde-rice.css';";
+
+static void applyGtkSheet(Context &context, const QString &dir, const QString &tpl)
 {
-    const QString dir = configHome() + "/gtk-4.0"_L1;
-    if (!QFileInfo::exists(dir) && QStandardPaths::findExecutable(u"gtk4-launch"_s).isEmpty()) {
-        return;
-    }
-    context.render(u"gtk4.css.tpl"_s, dir + "/kde-rice.css"_L1);
-    const QByteArray line = "@import 'kde-rice.css';";
+    context.render(tpl, dir + "/kde-rice.css"_L1);
     QFile sheet(dir + "/gtk.css"_L1);
     if (sheet.open(QIODevice::ReadWrite | QIODevice::Append)) {
         sheet.seek(0);
-        if (!sheet.readAll().contains(line)) {
-            sheet.write("\n" + line + "\n");
+        if (!sheet.readAll().contains(gtkImport)) {
+            sheet.write("\n" + gtkImport + "\n");
         }
+    }
+}
+
+static void applyGtk(Context &context)
+{
+    const QString gtk4 = configHome() + "/gtk-4.0"_L1;
+    if (QFileInfo::exists(gtk4) || !QStandardPaths::findExecutable(u"gtk4-launch"_s).isEmpty()) {
+        applyGtkSheet(context, gtk4, u"gtk4.css.tpl"_s);
+    }
+    // KDE makes this directory (its colors.css is there) when it sets GTK up
+    const QString gtk3 = configHome() + "/gtk-3.0"_L1;
+    if (QFileInfo::exists(gtk3)) {
+        applyGtkSheet(context, gtk3, u"gtk3.css.tpl"_s);
     }
 }
 
@@ -735,6 +753,10 @@ QStringList apply(const Theme &theme, const QString &background, const Options &
     if (context.templates.isEmpty()) {
         return {u"kde-rice's templates are not installed"_s};
     }
+    if (options.gtkOnly) {
+        applyGtk(context);
+        return context.problems;
+    }
     QDir().mkpath(outputDir());
     applyKde(context);
     applyGtk(context);
@@ -797,22 +819,23 @@ static void restoreKde(Context &context)
 
 static void restoreGtk()
 {
-    const QString dir = configHome() + "/gtk-4.0"_L1;
-    QFile sheet(dir + "/gtk.css"_L1);
-    if (sheet.open(QIODevice::ReadOnly)) {
-        QByteArray text = sheet.readAll();
-        sheet.close();
-        const QByteArray line = "@import 'kde-rice.css';";
-        if (text.contains(line)) {
-            // as applyGtk put it there: after a line break of its own
-            text.replace(QByteArray("\n\n" + line + "\n"), "\n");
-            text.replace(QByteArray("\n" + line + "\n"), "\n");
-            text.replace(QByteArray(line + "\n"), "");
-            text.replace(line, "");
-            write(dir + "/gtk.css"_L1, text);
+    for (const QLatin1StringView version : {"/gtk-3.0"_L1, "/gtk-4.0"_L1}) {
+        const QString dir = configHome() + version;
+        QFile sheet(dir + "/gtk.css"_L1);
+        if (sheet.open(QIODevice::ReadOnly)) {
+            QByteArray text = sheet.readAll();
+            sheet.close();
+            if (text.contains(gtkImport)) {
+                // as applyGtkSheet put it there: after a line break of its own
+                text.replace(QByteArray("\n\n" + gtkImport + "\n"), "\n");
+                text.replace(QByteArray("\n" + gtkImport + "\n"), "\n");
+                text.replace(QByteArray(gtkImport + "\n"), "");
+                text.replace(gtkImport, "");
+                write(dir + "/gtk.css"_L1, text);
+            }
         }
+        QFile::remove(dir + "/kde-rice.css"_L1);
     }
-    QFile::remove(dir + "/kde-rice.css"_L1);
 }
 
 static void restoreBtop(Context &context)

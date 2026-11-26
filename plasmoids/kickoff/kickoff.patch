@@ -1,0 +1,56 @@
+diff --git a/applets/kickoff/ApplicationsPage.qml b/applets/kickoff/ApplicationsPage.qml
+index 76a058f..cfd2e92 100644
+--- a/applets/kickoff/ApplicationsPage.qml
++++ b/applets/kickoff/ApplicationsPage.qml
+@@ -62,6 +62,9 @@ BasePage {
+                 // I have to do this for it to actually fill the item for some reason
+                 anchors.fill: parent
+                 active: false
++                // kde-rice: the category that is open drawn as pressed, so that it is
++                // not the same as the one under the pointer
++                pressed: sideBarDelegate.ListView.isCurrentItem
+                 hovered: sideBarDelegate.mouseArea.containsMouse || (flashFavoriteAnimation.running && sideBarDelegate.index === 0) || ((dropAreaLoader.item as DropArea)?.containsAcceptableDrag ?? false) || sideBarDelegate.ListView.isCurrentItem
+                 visible: !sideBarDelegate.isSeparator && hovered
+                 opacity: flashFavoriteAnimation.running && sideBarDelegate.index === 0 ? root.flashFavorite : 1
+diff --git a/applets/kickoff/Header.qml b/applets/kickoff/Header.qml
+index c938557..ade126c 100644
+--- a/applets/kickoff/Header.qml
++++ b/applets/kickoff/Header.qml
+@@ -129,7 +129,8 @@ PlasmaExtras.PlasmoidHeading {
+                     Kirigami.Heading {
+                         id: nameLabel
+                         anchors.fill: parent
+-                        opacity: parent.containsMouse ? 0 : 1
++                        // kde-rice: the line below is shown always, in place of this one
++                        opacity: 0
+                         color: Kirigami.Theme.textColor
+                         level: 4
+                         text: kuser.fullName
+@@ -150,7 +151,8 @@ PlasmaExtras.PlasmoidHeading {
+                         id: infoLabel
+                         anchors.fill: parent
+                         level: 5
+-                        opacity: parent.containsMouse ? 1 : 0
++                        // kde-rice: always, not only under the pointer
++                        opacity: 1
+                         color: Kirigami.Theme.textColor
+                         text: kuser.os !== "" ? `${kuser.loginName}@${kuser.host} (${kuser.os})` : `${kuser.loginName}@${kuser.host}`
+                         textFormat: Text.PlainText
+diff --git a/applets/kickoff/KickoffListDelegate.qml b/applets/kickoff/KickoffListDelegate.qml
+index 4e3d57f..837bead 100644
+--- a/applets/kickoff/KickoffListDelegate.qml
++++ b/applets/kickoff/KickoffListDelegate.qml
+@@ -53,7 +53,12 @@ AbstractKickoffItemDelegate {
+ 
+             animated: false
+             selected: root.iconAndLabelsShouldlookSelected
+-            source: root.removalPlaceholderActive ? "list-remove" : (root.decoration || root.icon.name || root.icon.source)
++            // kde-rice: Favorites a heart (kde-rice's icon theme has it), not Plasma's
++            // bookmark, which hangs from the top of its square
++            source: root.removalPlaceholderActive ? "list-remove"
++                : root.decoration === "bookmarks" ? "kde-rice-favorites"
++                : (root.decoration || root.icon.name || root.icon.source)
++            fallback: root.decoration === "bookmarks" ? "bookmarks" : "unknown"
+         }
+ 
+         Item {

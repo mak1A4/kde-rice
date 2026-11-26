@@ -22,7 +22,7 @@ pkgname=(kde-rice-git kde-rice-whitesur-git)
 if [ "${KDERICE_WHITESUR:-1}" = 0 ]; then
     pkgname=(kde-rice-git)
 fi
-pkgver=r63.4fdd41a
+pkgver=r64.d4383cc
 pkgrel=1
 pkgdesc="One place to customize KDE Plasma: a hub application and the KWin and Plasma parts it switches on"
 arch=(x86_64)
@@ -32,10 +32,10 @@ license=(GPL-3.0-or-later)
 depends=(kwin kdecoration kconfig kcoreaddons ki18n kcolorscheme kguiaddons kiconthemes kitemmodels
          kirigami kirigami-addons qqc2-desktop-style qt6-base qt6-declarative qt6-multimedia
          krunner kglobalaccel kdbusaddons layer-shell-qt plasma-workspace librsvg cairo
-         libksysguard ksystemstats)
+         libksysguard ksystemstats frameworkintegration kwindowsystem)
 optdepends=('ffmpeg: pictures of backgrounds on the Appearance page'
             'plasma-login-manager: the login screen in step with the session')
-makedepends=(cmake extra-cmake-modules ninja git patch gtk-update-icon-cache)
+makedepends=(cmake extra-cmake-modules ninja git patch gtk-update-icon-cache vulkan-headers)
 provides=(kde-rice)
 conflicts=(kde-rice)
 # Built without debug symbols, so nothing to strip: makepkg's stripping

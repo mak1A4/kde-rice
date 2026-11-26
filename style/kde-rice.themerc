@@ -1,0 +1,6 @@
+[Misc]
+Name=Breeze (kde-rice)
+ConfigPage=kstyle_config/breezestyleconfig
+Comment=Breeze with what is selected a fill without an outline, for kde-rice
+[KDE]
+WidgetStyle=kde-rice

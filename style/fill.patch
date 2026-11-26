@@ -1,0 +1,107 @@
+diff --git a/kstyle/breeze.json b/kstyle/breeze.json
+index a3d2b19..fefe5de 100644
+--- a/kstyle/breeze.json
++++ b/kstyle/breeze.json
+@@ -1 +1 @@
+-{ "Keys": [ "Breeze" ] }
++{ "Keys": [ "kde-rice" ] }
+diff --git a/kstyle/breezehelper.cpp b/kstyle/breezehelper.cpp
+index 43c47ee..ff5506a 100644
+--- a/kstyle/breezehelper.cpp
++++ b/kstyle/breezehelper.cpp
+@@ -395,7 +395,11 @@ void Helper::renderFocusRect(QPainter *painter, const QRectF &rect, const QBrush
+             copy.adjust(0, 0, radius, 0);
+         }
+ 
+-        painter->setPen(outline);
++        if (outline.alpha() == 0) {
++            painter->setPen(Qt::NoPen);
++        } else {
++            painter->setPen(outline);
++        }
+         // painter->setBrush( Qt::NoBrush );
+         painter->drawRoundedRect(copy, radius, radius);
+     }
+diff --git a/kstyle/breezestyle.cpp b/kstyle/breezestyle.cpp
+index f0d4dfe..71ffa25 100644
+--- a/kstyle/breezestyle.cpp
++++ b/kstyle/breezestyle.cpp
+@@ -237,8 +237,10 @@ ToolButtonMenuArrowStyle toolButtonMenuArrowStyle(const QStyleOption *option)
+         return ToolButtonMenuArrowStyle::SubControl;
+     }
+ 
++    // kde-rice: a menu behind a press and hold (Back, Forward) is not marked
++    // with an arrow
+     if (hasDelayedMenu) {
+-        return ToolButtonMenuArrowStyle::InlineSmall;
++        return ToolButtonMenuArrowStyle::None;
+     }
+ 
+     if (hasInlineIndicator && !iconOnly) {
+@@ -4140,7 +4142,10 @@ bool Style::drawFrameFocusRectPrimitive(const QStyleOption *option, QPainter *pa
+ 
+     // Dolphin uses these
+     if (qobject_cast<const QGraphicsWidget *>(option->styleObject)) {
+-        drawItemViewFocus();
++        // kde-rice: only where nothing else marks the entry
++        if (!(state & (State_Selected | State_MouseOver))) {
++            drawItemViewFocus();
++        }
+         return true;
+     }
+ 
+@@ -4878,10 +4883,8 @@ bool Style::drawPanelItemViewItemPrimitive(const QStyleOption *option, QPainter
+     }
+ 
+     // Focus decoration
+-    QColor focusColor = color;
+-    if (!hasCustomBackground) {
+-        focusColor.setAlphaF(selected ? 1.0 : 0.8);
+-    }
++    // kde-rice: the fill, no outline
++    const QColor focusColor = Qt::transparent;
+ 
+     // render
+     painter->setBrush(color);
+@@ -6026,6 +6029,10 @@ bool Style::drawMenuItemControl(const QStyleOption *option, QPainter *painter, c
+             // If not clicking, use the alphaColor
+             color = _helper->alphaColor(color, Metrics::Blend_Value);
+             outlineColor = _helper->focusOutlineColor(palette);
++        } else {
++            // kde-rice: clicked, the accent at half its strength, not at
++            // full, which is dark under the text (as in Plasma's lists)
++            color = _helper->alphaColor(color, 0.5);
+         }
+ 
+         Sides sides;
+@@ -6046,6 +6053,8 @@ bool Style::drawMenuItemControl(const QStyleOption *option, QPainter *painter, c
+             }
+         }
+ 
++        // kde-rice: the fill, no outline
++        outlineColor = Qt::transparent;
+         _helper->renderFocusRect(painter, rect, color, outlineColor, SideTop | SideBottom | SideLeft | SideRight);
+     }
+ 
+diff --git a/kstyle/breezestyleplugin.cpp b/kstyle/breezestyleplugin.cpp
+index 0b9cd7d..4582703 100644
+--- a/kstyle/breezestyleplugin.cpp
++++ b/kstyle/breezestyleplugin.cpp
+@@ -14,7 +14,7 @@ namespace Breeze
+ //_________________________________________________
+ QStyle *StylePlugin::create(const QString &key)
+ {
+-    if (key.compare(QLatin1String("breeze"), Qt::CaseInsensitive) == 0) {
++    if (key.compare(QLatin1String("kde-rice"), Qt::CaseInsensitive) == 0) {
+         return new Style;
+     }
+     return nullptr;
+@@ -23,7 +23,7 @@ QStyle *StylePlugin::create(const QString &key)
+ //_________________________________________________
+ QStringList StylePlugin::keys() const
+ {
+-    return QStringList(QStringLiteral("Breeze"));
++    return QStringList(QStringLiteral("kde-rice"));
+ }
+ 
+ }

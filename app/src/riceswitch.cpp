@@ -2,6 +2,7 @@
 #include "applier.h"
 #include "icons.h"
 #include "kwin.h"
+#include "panellayout.h"
 #include "panelstyle.h"
 #include "session.h"
 #include "theme.h"
@@ -236,6 +237,45 @@ QJsonObject readState()
     return file.open(QIODevice::ReadOnly) ? QJsonDocument::fromJson(file.readAll()).object() : QJsonObject();
 }
 
+// The splash screen at login, off as Plasma's own Splash Screen page says it
+// (ksplashrc); shown is nothing said there: the global theme's.
+void setSplash(bool shown)
+{
+    auto rc = open(u"ksplashrc"_s);
+    KConfigGroup group = rc->group(u"KSplash"_s);
+    if (shown) {
+        group.deleteEntry("Engine");
+        group.deleteEntry("Theme");
+    } else {
+        group.writeEntry("Engine", u"none"_s);
+        group.writeEntry("Theme", u"None"_s);
+    }
+    rc->sync();
+}
+
+// The widget style: kde-rice's (style/), or Plasma's own again (no entry:
+// Breeze). The running applications are told.
+void setWidgetStyle(bool rice, bool tell)
+{
+    auto globals = open(u"kdeglobals"_s);
+    KConfigGroup group = globals->group(u"KDE"_s);
+    if (rice) {
+        group.writeEntry("widgetStyle", Session::riceStyle(), KConfig::Notify);
+    } else {
+        group.deleteEntry("widgetStyle", KConfig::Notify);
+    }
+    globals->sync();
+    if (tell) {
+        Session::widgetStyleChanged();
+    }
+}
+
+// whether kde-rice is to leave the splash screen out (the hub's Effects page)
+bool splashOff(const KSharedConfigPtr &riceRc)
+{
+    return !riceRc->group(u"Session"_s).readEntry("Splash", true);
+}
+
 // The login screen brought in step with the session, which login-screen
 // takes off kde-rice's wallpaper while off.json is there. Asks for the
 // password.
@@ -319,6 +359,7 @@ QStringList RiceSwitch::restoreDefaults()
         state[u"widgets"_s] = widgets();
         state[u"appletIcons"_s] = riceAppletIcons();
         state[u"loginScreen"_s] = QFileInfo::exists(s_loginSetting);
+        state[u"widgetStyle"_s] = globals->group(u"KDE"_s).readEntry("widgetStyle") == Session::riceStyle();
         if (!writeState(state)) {
             return {u"%1 could not be written: nothing changed"_s.arg(stateFile())};
         }
@@ -362,10 +403,23 @@ QStringList RiceSwitch::restoreDefaults()
         kwinReconfigure();
     }
 
+    // the splash screen at login, if kde-rice left it out
+    if (splashOff(riceRc)) {
+        setSplash(true);
+    }
+    // Breeze, if the widget style is kde-rice's
+    if (state[u"widgetStyle"_s].toBool()) {
+        setWidgetStyle(false, tell);
+    }
+
     // Plasma: the style, the widgets; the colour scheme, the icons, the
     // wallpaper and the other programs' files
     PanelStyle::restoreStyle();
     if (tell) {
+        // the panels floating again, if kde-rice docked them
+        if (PanelLayout::chosen()) {
+            PanelLayout::applyPlasmaDefault();
+        }
         removeWidgets(widgets());
         // no applet left with an icon kde-rice's icon theme alone has
         switchAppletIcons(state[u"appletIcons"_s].toArray(), true);
@@ -451,6 +505,7 @@ QStringList RiceSwitch::reapply()
         PanelStyle::applyOpacity(PanelStyle::savedOpacity());
     }
     if (tell) {
+        PanelLayout::applyChosen();
         addWidgets(state[u"widgets"_s].toArray());
         switchAppletIcons(state[u"appletIcons"_s].toArray(), false);
     }
@@ -459,6 +514,12 @@ QStringList RiceSwitch::reapply()
     auto riceRc = open(u"kde-ricerc"_s);
     riceRc->group(u"Gaps"_s).writeEntry("Enabled", state[u"gaps"_s].toBool(), KConfig::Notify);
     riceRc->sync();
+    if (splashOff(riceRc)) {
+        setSplash(false);
+    }
+    if (state[u"widgetStyle"_s].toBool() && Session::riceStyleInstalled()) {
+        setWidgetStyle(true, tell);
+    }
     if (tell) {
         Session::start(u"kde-rice-launcher"_s, state[u"launcher"_s].toBool() ? QStringList{u"--background"_s, u"--take-shortcut"_s} : QStringList{u"--background"_s});
         Session::start(u"kde-rice-tray"_s);

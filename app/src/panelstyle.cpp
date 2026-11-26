@@ -170,6 +170,74 @@ static QString squareMask(const QString &svg, bool square, const QString &opacit
     return result;
 }
 
+// One state of the list highlight (hover, selected, selected+hover), as the
+// nine pieces Plasma puts a frame together from, at (x, y) in the picture:
+// a fill of the accent at `opacity`, round at the corners. The pieces at the
+// edges are 5 high and wide, as Breeze's, so that what is laid out by them
+// stays where it is; the fill keeps 1 off the top and the bottom (a rect
+// that is not seen gives such a piece its size), so that two highlighted
+// rows one below the other are two.
+static QString highlightPieces(const QString &state, int x, int y, const QString &opacity)
+{
+    const int s = 5; // a piece at the edge
+    const int r = 4; // the corners' radius
+    const int v = s - r; // kept free above and below
+    const int m = 20; // the pieces in between, stretched
+    const QString fill = uR"( class="ColorScheme-ButtonFocus" style="fill:currentColor;stroke:none;opacity:%1")"_s.arg(opacity);
+    const auto piece = [&](const QString &where, int px, int py, int w, int h, const QString &shape) {
+        return uR"(<g id="%1-%2"><rect x="%3" y="%4" width="%5" height="%6" style="fill:#000000;stroke:none;opacity:0.001"/>%7</g>
+)"_s.arg(state, where).arg(px).arg(py).arg(w).arg(h).arg(shape);
+    };
+    const auto rect = [&](int px, int py, int w, int h) {
+        return uR"(<rect x="%1" y="%2" width="%3" height="%4"%5/>)"_s.arg(px).arg(py).arg(w).arg(h).arg(fill);
+    };
+    const auto path = [&](const QString &d) {
+        return uR"(<path d="%1"%2/>)"_s.arg(d, fill);
+    };
+    const int x1 = x + s;
+    const int x2 = x + s + m;
+    const int y1 = y + s;
+    const int y2 = y + s + m;
+    QString pieces;
+    pieces += piece(u"topleft"_s, x, y, s, s, path(u"M %1,%2 L %3,%2 A %4,%4 0 0 0 %5,%6 L %1,%6 Z"_s.arg(x1).arg(y + v).arg(x + r).arg(r).arg(x).arg(y1)));
+    pieces += piece(u"top"_s, x1, y, m, s, rect(x1, y + v, m, r));
+    pieces += piece(u"topright"_s, x2, y, s, s, path(u"M %1,%2 L %3,%2 A %4,%4 0 0 1 %5,%6 L %1,%6 Z"_s.arg(x2).arg(y + v).arg(x2 + s - r).arg(r).arg(x2 + s).arg(y1)));
+    pieces += piece(u"left"_s, x, y1, s, m, rect(x, y1, s, m));
+    pieces += uR"(<rect id="%1-center" x="%2" y="%3" width="%4" height="%4"%5/>
+)"_s.arg(state).arg(x1).arg(y1).arg(m).arg(fill);
+    pieces += piece(u"right"_s, x2, y1, s, m, rect(x2, y1, s, m));
+    pieces += piece(u"bottomleft"_s, x, y2, s, s, path(u"M %1,%2 L %3,%2 L %3,%4 L %5,%4 A %6,%6 0 0 1 %1,%2 Z"_s.arg(x).arg(y2).arg(x1).arg(y2 + r).arg(x + r).arg(r)));
+    pieces += piece(u"bottom"_s, x1, y2, m, s, rect(x1, y2, m, r));
+    pieces += piece(u"bottomright"_s, x2, y2, s, s, path(u"M %1,%2 L %3,%2 A %4,%4 0 0 1 %5,%6 L %1,%6 Z"_s.arg(x2).arg(y2).arg(x2 + s).arg(r).arg(x2 + s - r).arg(y2 + r)));
+    return pieces;
+}
+
+// Breeze's picture of what is highlighted in Plasma's lists (the launcher's,
+// the system tray's: widgets/viewitem), with the three states that are a
+// fill of the accent drawn anew (highlightPieces), Breeze's taken out:
+//  - under the pointer, and the current entry (hover): Breeze's fill at 30 %
+//    with an outline. Here a fill alone, as kde-rice's application style has
+//    it (style/), and fainter, as the launcher shows several at once (the
+//    category open, the entry under the pointer, the current application);
+//  - clicked (selected+hover): Breeze's accent at full strength, dark under
+//    the text. Here at half of it;
+//  - selected: at 80 %, as Breeze's.
+static QString riceHighlights(const QString &svg)
+{
+    // a group and all in it, or an element by itself
+    static const QRegularExpression theirs(uR"re(<g\b[^>]*\bid="(?:hover|selected|selected\+hover)-[a-z]+"[^>]*>.*?</g>|<(?:path|rect)\b[^>]*\bid="(?:hover|selected|selected\+hover)-[a-z]+"[^>]*/>)re"_s,
+                                           QRegularExpression::DotMatchesEverythingOption);
+    QString result = svg;
+    result.remove(theirs);
+    const qsizetype end = result.lastIndexOf("</svg>"_L1);
+    if (end < 0) {
+        return svg;
+    }
+    // below Breeze's own, where the picture has nothing
+    result.insert(end, highlightPieces(u"hover"_s, 0, 400, u"0.18"_s) + highlightPieces(u"selected"_s, 40, 400, u"0.8"_s) + highlightPieces(u"selected+hover"_s, 80, 400, u"0.5"_s));
+    return result;
+}
+
 bool PanelStyle::write(int percent)
 {
     const QString breeze = QStandardPaths::locate(QStandardPaths::GenericDataLocation, u"plasma/desktoptheme/default"_s, QStandardPaths::LocateDirectory);
@@ -210,6 +278,10 @@ bool PanelStyle::write(int percent)
         const bool panel = relative.endsWith("widgets/panel-background.svg"_L1) && !relative.startsWith("opaque/"_L1) && !relative.startsWith("solid/"_L1);
         svg = squareMask(svg, !relative.contains("panel-background"_L1), panel ? opacity : QString());
         changed |= writeFile(styleDir() + u'/' + relative, svg.toUtf8());
+    }
+    KCompressionDevice viewItem(breeze + "/widgets/viewitem.svgz"_L1, KCompressionDevice::GZip);
+    if (viewItem.open(QIODevice::ReadOnly)) {
+        changed |= writeFile(styleDir() + "/widgets/viewitem.svg"_L1, riceHighlights(QString::fromUtf8(viewItem.readAll())).toUtf8());
     }
     return changed;
 }

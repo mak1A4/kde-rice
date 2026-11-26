@@ -1,0 +1,14 @@
+#!/bin/sh
+# kde-rice's build of Dolphin's library in use only beside the Dolphin it was
+# built for: the link "current" to its version's directory while that is
+# the installed Dolphin's, else none (Dolphin's own library is found).
+# Run as root at install and after pacman changes Dolphin
+# (kde-rice-dolphin.hook).
+dir=/usr/lib/kde-rice/dolphin
+installed=$(readlink /usr/lib/libdolphinprivate.so.6 2> /dev/null | sed -n 's/^libdolphinprivate\.so\.//p')
+if [ -n "$installed" ] && [ -e "$dir/$installed/libdolphinprivate.so.6" ]; then
+    ln -sfn "$installed" "$dir/current"
+else
+    rm -f "$dir/current"
+fi
+ldconfig

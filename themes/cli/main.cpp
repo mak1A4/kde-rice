@@ -7,6 +7,10 @@
 //                                           choose and apply a theme, with one of its
 //                                           backgrounds (by file name) or none
 //   kde-rice-theme apply                    apply the chosen theme again
+//   kde-rice-theme apply gtk                its style sheets for GTK alone (the menus
+//                                           of Electron applications, libadwaita's
+//                                           colours): read by an application when it
+//                                           starts
 //   kde-rice-theme backgrounds [<theme>]    a theme's backgrounds
 //   kde-rice-theme values [<theme>]         what the templates are filled in with
 //   kde-rice-theme icons use                kde-rice's icon theme in use
@@ -43,11 +47,11 @@ static QTextStream err(stderr);
 
 static int usage()
 {
-    err << "usage: kde-rice-theme list | current | set <theme> [<background>|--none] | apply | backgrounds [<theme>] | values [<theme>]\n";
+    err << "usage: kde-rice-theme list | current | set <theme> [<background>|--none] | apply [gtk] | backgrounds [<theme>] | values [<theme>]\n";
     return 2;
 }
 
-static int applyChosen(const ThemeStore::Choice &choice)
+static int applyChosen(const ThemeStore::Choice &choice, bool gtkOnly = false)
 {
     QString warnings;
     const auto theme = ThemeStore::load(choice.theme, &warnings);
@@ -61,6 +65,7 @@ static int applyChosen(const ThemeStore::Choice &choice)
     const QString background = choice.backgrounds.value(choice.theme) == "-"_L1 ? QString() : ThemeStore::backgroundFor(choice.theme, choice);
     ThemeApplier::Options options;
     options.filesOnly = qEnvironmentVariableIntValue("KDERICE_FILES_ONLY") == 1;
+    options.gtkOnly = gtkOnly;
     const QStringList problems = ThemeApplier::apply(*theme, background, options);
     for (const QString &problem : problems) {
         err << problem << "\n";
@@ -118,7 +123,10 @@ int main(int argc, char *argv[])
             err << "no theme chosen\n";
             return 1;
         }
-        return applyChosen(choice);
+        if (!arguments.isEmpty() && arguments.first() != "gtk"_L1) {
+            return usage();
+        }
+        return applyChosen(choice, !arguments.isEmpty());
     }
     if (command == "backgrounds"_L1) {
         const QStringList all = ThemeStore::backgrounds(arguments.value(0, choice.theme));

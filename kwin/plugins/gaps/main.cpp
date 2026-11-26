@@ -18,8 +18,9 @@
 // with the gaps they stood twice as far off the panel and the screen's edge
 // as windows do: they are moved out by that spacing, all of them by the
 // same, so that the corner of the stack is where a maximized window's is;
-// by a panel, the stack is then brought to it, as far off it as the panel
-// floats off the screen's edge.
+// by a floating panel, the stack is then brought to it, as far off it as
+// the panel floats off the screen's edge (by a docked one it stays a gap off
+// the panel, as a maximized window does).
 
 #include "plugin.h"
 #include "wayland/surface.h"
@@ -170,6 +171,14 @@ private:
         return input.isEmpty() ? frame : input.boundingRect().translated(panel->bufferGeometry().topLeft()) & frame;
     }
 
+    // whether a panel stands off every screen edge it lies along (a docked
+    // panel touches one)
+    static bool floats(const RectF &shown, const RectF &screen)
+    {
+        return !near(shown.left(), screen.left()) && !near(shown.top(), screen.top()) && !near(shown.right(), screen.right())
+            && !near(shown.bottom(), screen.bottom());
+    }
+
     // A tooltip by a panel, against the panel's edge. Plasma places each
     // kind of tooltip its own way, a text a gap's breadth off the panel, a
     // window's picture less (and one window does for all of them, moved and
@@ -254,12 +263,17 @@ private:
         };
         QPointF offset(by(right) - by(left), by(bottom) - by(top));
         // then to a panel the stack lies by, as far off it as the panel
-        // floats off the screen's edge (where the stack is a gap off it)
+        // floats off the screen's edge (where the stack is a gap off it); a
+        // docked panel's stack stays where it is, a gap off the panel as off
+        // the screen's side, not against the panel
         stack.translate(offset);
         const auto panels = panelsOn(output);
         for (const Window *panel : panels) {
             const RectF frame = panel->frameGeometry();
             const RectF shown = shownOf(panel);
+            if (!floats(shown, *screen)) {
+                continue;
+            }
             if (frame.width() >= frame.height()) {
                 if (std::min(stack.right(), shown.right()) <= std::max(stack.left(), shown.left())) {
                     continue;

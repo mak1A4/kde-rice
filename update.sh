@@ -1,5 +1,5 @@
 #!/bin/sh
-# Updates the system, and kde-rice with it when KWin changed:
+# Updates the system, and kde-rice with it when KWin or Dolphin changed:
 #
 #   ./update.sh            (arguments are passed on to paru -Syu)
 #
@@ -29,5 +29,14 @@ release=$(sed -n 's/^#define KWIN_PLUGIN_VERSION_STRING "\([^"]*\)".*/\1/p' /usr
 if [ -n "$pin" ] && [ "$pin" != "kwin=$release" ]; then
     echo
     echo "KWin is now $release, kde-rice was built for ${pin#kwin=}: building it again."
+    exec "$repo/install.sh"
+fi
+
+# Dolphin likewise: kde-rice's build of its library is used only beside the
+# Dolphin it was built for (dolphin/), so another Dolphin is built for anew
+dolphin=$(readlink /usr/lib/libdolphinprivate.so.6 2> /dev/null | sed -n 's/^libdolphinprivate\.so\.//p')
+if [ -n "$dolphin" ] && [ -d /usr/lib/kde-rice/dolphin ] && [ ! -e "/usr/lib/kde-rice/dolphin/$dolphin" ]; then
+    echo
+    echo "Dolphin is now $dolphin, kde-rice's build of its library is for another: building kde-rice again."
     exec "$repo/install.sh"
 fi

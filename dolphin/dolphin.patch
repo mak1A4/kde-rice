@@ -1,0 +1,51 @@
+diff --git a/src/kitemviews/kitemlistwidget.cpp b/src/kitemviews/kitemlistwidget.cpp
+index e792844..e20186f 100644
+--- a/src/kitemviews/kitemlistwidget.cpp
++++ b/src/kitemviews/kitemlistwidget.cpp
+@@ -131,10 +131,18 @@ void KItemListWidget::paint(QPainter *painter, const QStyleOptionGraphicsItem *o
+     }
+ 
+     if (m_hoverOpacity > 0.0) {
++        // kde-rice: drawn at the screen's pixel ratio, not at 1 and stretched
++        // (blurred) to it
++        const qreal ratio = painter->device()->devicePixelRatioF();
++        if (m_hoverCache && !qFuzzyCompare(m_hoverCache->devicePixelRatioF(), ratio)) {
++            delete m_hoverCache;
++            m_hoverCache = nullptr;
++        }
+         if (!m_hoverCache) {
+             // Initialize the m_hoverCache pixmap to improve the drawing performance
+             // when fading the hover background
+-            m_hoverCache = new QPixmap(size().toSize());
++            m_hoverCache = new QPixmap((size() * ratio).toSize());
++            m_hoverCache->setDevicePixelRatio(ratio);
+             m_hoverCache->fill(Qt::transparent);
+ 
+             QPainter pixmapPainter(m_hoverCache);
+diff --git a/src/kitemviews/kstandarditemlistwidget.cpp b/src/kitemviews/kstandarditemlistwidget.cpp
+index ddd3fe0..5c6b1a5 100644
+--- a/src/kitemviews/kstandarditemlistwidget.cpp
++++ b/src/kitemviews/kstandarditemlistwidget.cpp
+@@ -535,7 +535,21 @@ QRectF KStandardItemListWidget::selectionRectFull() const
+                 rect.setLeft(size().width() - m_columnWidthSum - rightPadding());
+             }
+         }
+-        return rect.adjusted(-padding, 0, padding, 0);
++        rect.adjust(-padding, 0, padding, 0);
++        // kde-rice: room before the icon, as much as there is up to the
++        // expansion arrow and the row's start (into the view's side
++        // padding)
++        constexpr qreal room = 6;
++        if (layoutDirection() == Qt::LeftToRight) {
++            qreal left = rect.left() - room;
++            left = std::max(left, m_expansionArea.isValid() ? m_expansionArea.right() : 0.0);
++            rect.setLeft(std::min(rect.left(), left));
++        } else {
++            qreal right = rect.right() + room;
++            right = std::min(right, m_expansionArea.isValid() ? m_expansionArea.left() : size().width());
++            rect.setRight(std::max(rect.right(), right));
++        }
++        return rect;
+     } else {
+         if (m_layout == CompactLayout) {
+             return rect().adjusted(-padding, 0, padding, 0);

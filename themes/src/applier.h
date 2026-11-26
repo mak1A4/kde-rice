@@ -41,6 +41,9 @@ QHash<QString, QString> values(const Theme &theme);
 struct Options {
     // write the files only, tell no program (for trying it out)
     bool filesOnly = false;
+    // GTK's style sheets alone (kde-rice-theme apply gtk): nothing else of
+    // the theme is written, and nothing is told
+    bool gtkOnly = false;
 };
 
 // What went wrong, one line each; empty if nothing did.

@@ -1,0 +1,15 @@
+# kde-rice's build of Dolphin's library only beside the Dolphin it was built
+# for (kde-rice-dolphin-link)
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Operation = Remove
+Type = Package
+Target = dolphin
+Target = kde-rice-git
+
+[Action]
+Description = Choosing kde-rice's or Dolphin's own library for Dolphin...
+When = PostTransaction
+# (kde-rice-git itself removed: nothing to choose, its link script gone too)
+Exec = /bin/sh -c '[ ! -x /usr/lib/kde-rice/kde-rice-dolphin-link ] || /usr/lib/kde-rice/kde-rice-dolphin-link'

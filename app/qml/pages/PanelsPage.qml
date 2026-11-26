@@ -89,6 +89,31 @@ FormCard.FormCardPage {
     }
 
     FormCard.FormHeader {
+        title: i18n("Position")
+    }
+
+    FormCard.FormCard {
+        FormCard.FormRadioDelegate {
+            text: i18n("Floating")
+            description: i18n("The panel and its popups stand off the screen's edge.")
+            checked: PanelLayout.mode === PanelLayout.Floating
+            onToggled: if (checked) PanelLayout.mode = PanelLayout.Floating
+        }
+        FormCard.FormRadioDelegate {
+            text: i18n("Docked, popups floating")
+            description: i18n("The panel lies along the edge; its popups (launcher, tray, calendar) keep a margin to the panel and the screen's edge.")
+            checked: PanelLayout.mode === PanelLayout.FloatingPopups
+            onToggled: if (checked) PanelLayout.mode = PanelLayout.FloatingPopups
+        }
+        FormCard.FormRadioDelegate {
+            text: i18n("Docked")
+            description: i18n("The panel and its popups against the edge.")
+            checked: PanelLayout.mode === PanelLayout.Docked
+            onToggled: if (checked) PanelLayout.mode = PanelLayout.Docked
+        }
+    }
+
+    FormCard.FormHeader {
         title: i18n("Layout")
     }
 

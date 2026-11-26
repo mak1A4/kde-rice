@@ -18,8 +18,11 @@ be changed from outside is changed from here, and Plasma updates stay a
 | `tray/` | `kde-rice-tray`: tray entries that name a theme icon in place of applications' that send a picture | Qt D-Bus |
 | `gaps/` | `kde-rice-gaps`: room kept free along the screen's edges, so maximized windows keep a gap and a floating panel keeps floating | LayerShellQt |
 | `plasmoids/` | Desktop widgets on frosted glass: Now Playing, System Rings | Plasma (QML) |
+| `plasmoids/kickoff/` | Plasma's Application Launcher, patched (`kickoff.patch`): `user@host (system)` in its header always, and the open category told from the one under the pointer. A widget of its own, "Application Launcher (kde-rice)", chosen with Show Alternatives on the panel's launcher | Plasma (QML), plasma-desktop's sources |
 | `kwin/plugins/` | KWin plugins (C++), e.g. rounded corners on every window | KWin's internal API |
 | `kwin/decoration/breeze/` | Breeze title bars, patched to keep their corners | KDecoration3, Breeze's sources |
+| `style/` | Breeze as the application style, patched (`fill.patch`): what is selected or under the pointer in a menu, a list or a file view is a fill without Breeze's outline, and no arrow on buttons whose menu opens on a press and hold (Dolphin's Back and Forward). A style of its own name, `kde-rice`, next to Breeze; the hub's Effects page switches between the two (and restarts Plasma's shell for it) | Qt Widgets, Breeze's sources |
+| `dolphin/` | Dolphin's library, patched (`dolphin.patch`): the highlight under the pointer drawn sharp at a scale of 2, where Dolphin stretches it from 1, and the details view's highlight starting a little before the icon, not 2 px off it. Installed beside Dolphin's own (`/usr/lib/kde-rice/dolphin/<version>`, found first through `/etc/ld.so.conf.d/kde-rice.conf`) and used only while Dolphin is the version it was built for (a pacman hook); `update.sh` builds it again for a new Dolphin | Dolphin's sources |
 
 Coming: `lookandfeel/` (global theme), `kwin/scripts/`,
 `kwin/effects/`, `sddm/`.
@@ -59,7 +62,11 @@ program has one of its own.
   theme without one gives Plasma's wallpaper back.
 - **What a theme changes**: KDE's colour scheme (Qt/KDE applications, title
   bars, light or dark for everything that asks), a `-Dark`/`-Light` icon
-  theme pair, GTK 4/libadwaita and btop directly; VS Code keeps its
+  theme pair, GTK 4/libadwaita and btop directly; the menus of Electron
+  applications, which Chromium draws by GTK 3's style sheet (the entry under
+  the pointer a round fill of the selection's colour, as far off the menu's
+  sides as the entries are off its top, and the separators faint; an entry's
+  size and the menu's frame are Chromium's own and stay); VS Code keeps its
   built-in Dark/Light Modern theme, coloured with the theme's colours
   (`workbench.colorCustomizations` between two `// kde-rice` comments in its
   settings), so no theme extensions are installed; T3 Code wears a theme
@@ -100,9 +107,10 @@ tooltips and notifications by, so a KWin plugin (`kwin/plugins/gaps`, on by
 default, idle while the gaps are off) gives that room back: menus are
 placed as without the strips, the panel's tooltips sit against the panel,
 and notifications line up with the windows (the stack's side where a
-maximized window's is) and sit by the panel, as far off it as the panel
-floats off the screen's edge, where Plasma's own spacing came on top of the
-gap.
+maximized window's is) and sit by a floating panel, as far off it as the
+panel floats off the screen's edge, where Plasma's own spacing came on top
+of the gap; by a docked panel the stack stays a gap off it, as a maximized
+window does.
 
 ## Desktop widgets
 
@@ -239,6 +247,16 @@ style makes those masks square, and the corners plugin gives Plasma's popup
 windows the frame's radius (6 px), along which KWin's blur has a smooth
 edge.
 
+## Panel position
+
+The Panels page sets how all panels stand by the screen's edge: floating,
+docked with their popups floating (Plasma's "Floating: Applets only": the
+launcher, the tray and the calendar keep a margin to the panel and the
+edge), or docked. Plasma keeps it per panel; kde-rice sets every panel alike
+through Plasma's scripting, and keeps the choice as `[Panels] Floating` in
+`kde-ricerc` (`floating`, `popups`, `docked`). Turning kde-rice off floats
+the panels again (Plasma's own), turning it on sets the choice again.
+
 ## Turning kde-rice off
 
 The switch at the foot of the hub's sidebar (or `kde-rice --restore-defaults`
@@ -249,6 +267,9 @@ scheme, icon theme and Plasma style; Breeze's title bars and kde-rice's KWin
 plugins off; the gaps, the launcher (and its Meta+Space) and the tray stopped
 and hidden from autostart (entries in `~/.config/autostart`); the desktop's
 and the lock screen's wallpaper; kde-rice's desktop widgets taken off; the
+splash screen at login shown again, if the hub's Effects page left it out;
+the panels floating again, if the Panels page docked them;
+Breeze as the application style, if it was kde-rice's; the
 files written for GTK, the terminals, btop, VS Code, Teams and Outlook; T3
 Code's theme (the one it had before, else none: its own look); applets whose
 icon is one of kde-rice's glyphs (Show Desktop's `kde-rice-show-desktop`,
@@ -289,9 +310,14 @@ they are built from changed (`packaging/whitesur-inputs`).
 
 Options: `-DKDERICE_APP=OFF`, `-DKDERICE_THEMES=OFF`, `-DKDERICE_LAUNCHER=OFF`,
 `-DKDERICE_ICONS=OFF`, `-DKDERICE_TRAY=OFF`, `-DKDERICE_GAPS=OFF`, `-DKDERICE_PLASMOIDS=OFF`, `-DKDERICE_KWIN_PLUGINS=OFF`,
-`-DKDERICE_DECORATION=OFF`. The decoration fetches Breeze's sources for the
+`-DKDERICE_DECORATION=OFF`, `-DKDERICE_STYLE=OFF`, `-DKDERICE_KICKOFF=OFF`. The decoration and the application style fetch Breeze's sources for the
 installed Plasma release from download.kde.org; `-DBREEZE_URL=` points it at
 a local archive instead.
+
+`./install.sh --gtk` writes only GTK's style sheets, from this checkout's
+template: nothing is installed and no password asked for, which is the quick
+way while working on them (`kde-rice-theme apply gtk` does the same with the
+installed one). An application reads them when it starts.
 
 **After every Plasma update**, kde-rice has to be built again: KWin's plugin
 API is not stable between releases, and a plugin built for the previous KWin
