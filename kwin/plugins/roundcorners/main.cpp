@@ -202,6 +202,14 @@ private:
         if (window->isFullScreen()) {
             return;
         }
+        // While it's resized by hand, the window's buffer and the region it
+        // calls opaque come one after the other, and a buffer of the new size
+        // with the region of the old one looks as if its corners were round:
+        // the decoration would go and come back on every step, its shadow
+        // flickering. Looked at again once it's let go.
+        if (window->isInteractiveResize()) {
+            return;
+        }
         const bool isFramed = framed(window);
         // the application asked for KWin's title bar
         if (!isFramed && (window->decoration() || window->nextDecoration())) {
@@ -309,6 +317,8 @@ private:
         connect(window, &Window::fullScreenChanged, this, update);
         connect(window, &Window::frameGeometryChanged, this, update);
         connect(window, &Window::bufferGeometryChanged, this, update);
+        // what a resize by hand left undecided (see frame())
+        connect(window, &Window::interactiveMoveResizeFinished, this, update);
         // and which windows are joined, looked at again
         const auto join = [this] {
             m_join.start();
